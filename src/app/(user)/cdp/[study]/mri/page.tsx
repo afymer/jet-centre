@@ -1,4 +1,4 @@
-import { loadMriData } from '@/app/(user)/(cdp)/[study]/mri/form/mri';
+import { loadMriData } from '@/app/(user)/cdp/[study]/mri/form/mri';
 import Inner from './inner';
 import { StudyParams } from '@/routes';
 

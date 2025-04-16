@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { MriStatus } from '@prisma/client';
 import { useState } from 'react';
-import { setMriStatus } from '../../(cdp)/[study]/mri/form/mri';
+import { setMriStatus } from '../../cdp/[study]/mri/form/mri';
 import { FaBug, FaCheck } from 'react-icons/fa6';
 import { LoadingFullStops } from '@/components/loading';
 
