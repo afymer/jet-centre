@@ -55,7 +55,9 @@ export default auth((request: NextAuthRequest) => {
     const pathnamePosition = '/' + pathname.split('/')[1];
     if (pathnamePosition != UNAUTHORIZED_REDIRECT) {
         const authorizedPath = authorizedRoutes[position as keyof typeof authorizedRoutes];
-        const isAuthorized = authorizedPath?.includes(pathnamePosition);
+        const isAuthorized =
+            authorizedRoutes.default.includes(pathnamePosition) ||
+            authorizedPath?.includes(pathnamePosition);
         if (!isAuthorized && isLoggedIn) {
             return NextResponse.redirect(new URL(UNAUTHORIZED_REDIRECT, request.nextUrl));
         }
