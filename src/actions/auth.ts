@@ -8,7 +8,6 @@
  */
 
 import prisma from '@/db';
-import { dbg } from '@/lib/utils';
 import type { NextAuthConfig, Profile } from 'next-auth';
 import NextAuth from 'next-auth';
 import Google, { GoogleProfile } from 'next-auth/providers/google';
@@ -33,11 +32,28 @@ const config = {
         signOut: '/auth/signout',
     },
     callbacks: {
-        async jwt({ token, account }) {
+        async jwt({ user, token, account }) {
             if (account?.access_token) {
                 token.access_token = account.access_token;
                 token.refresh_token = account.refresh_token;
             }
+            if (user !== undefined) {
+                const person = await prisma.person.findUnique({
+                    where: { email: token.email ?? undefined },
+                    select: {
+                        user: true,
+                    },
+                });
+                const admin = await prisma.admin.findFirst({
+                    where: { userId: person?.user?.id },
+                    select: {
+                        position: true,
+                    },
+                });
+                const position = admin?.position ?? undefined;
+                token.position = position;
+            }
+
             return token;
         },
         async session({ session, token }) {
@@ -46,6 +62,7 @@ const config = {
                     ...session,
                     user: {
                         ...session.user,
+                        position: token.position,
                         access_token: token.access_token,
                         refresh_token: token.refresh_token,
                     },
@@ -55,7 +72,6 @@ const config = {
             return session;
         },
         async signIn({ profile }: { profile?: Profile }) {
-            dbg(profile, 'profile');
             if (!profile) return false;
             const { email, given_name, family_name, picture } = profile as GoogleProfile;
             const firstName = given_name ?? '<no given_name>';

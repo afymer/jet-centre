@@ -16,7 +16,7 @@ import { auth } from './actions/auth';
 
 import type { Session } from 'next-auth';
 import type { NextRequest } from 'next/server';
-import { DEFAULT_LOGIN_REDIRECT } from './routes';
+import { authorizedRoutes, DEFAULT_LOGIN_REDIRECT, UNAUTHORIZED_REDIRECT } from './routes';
 
 /**
  * Extends the internal NextAuth type to add `auth` session.
@@ -34,6 +34,7 @@ interface NextAuthRequest extends NextRequest {
 export default auth((request: NextAuthRequest) => {
     const session = request.auth;
     const isLoggedIn = !!session?.user.email;
+    const position = session?.user.position;
 
     if (process.env.DEV_MODE) {
         return;
@@ -50,6 +51,17 @@ export default auth((request: NextAuthRequest) => {
             return NextResponse.redirect(new URL('/auth/signin', request.nextUrl));
         }
     }
+
+    const pathnamePosition = '/' + pathname.split('/')[1];
+    if (pathnamePosition != UNAUTHORIZED_REDIRECT) {
+        const authorizedPath = authorizedRoutes[position as keyof typeof authorizedRoutes];
+        const isAuthorized = authorizedPath?.includes(pathnamePosition);
+        if (!isAuthorized && isLoggedIn) {
+            return NextResponse.redirect(new URL(UNAUTHORIZED_REDIRECT, request.nextUrl));
+        }
+    }
+
+    return NextResponse.next();
 });
 
 /**

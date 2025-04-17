@@ -3,6 +3,7 @@ import { DefaultSession } from 'next-auth';
 export type ExtendedUser = DefaultSession['user'] & {
     access_token: string;
     refresh_token: string;
+    position: string;
 };
 
 declare module 'next-auth' {
