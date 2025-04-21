@@ -2,8 +2,6 @@ FROM node:22-slim
 
 WORKDIR /app
 
-COPY package*.json ./
-
 RUN apt update -y && apt install -y openssl
 
 EXPOSE 3000
