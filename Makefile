@@ -11,7 +11,7 @@ fmt:
 	$(EXEC) app-dev npm run fmt
 
 studio:
-	$(EXEC) app-dev npx prisma studio
+	$(EXEC) app-dev npx prisma studio --port 5555
 
 seed: reset_db
 	$(EXEC) app-dev npx prisma db seed -- --environment dev

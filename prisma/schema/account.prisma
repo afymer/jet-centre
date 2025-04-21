@@ -56,8 +56,15 @@ model Address {
     company Company?
 }
 
+enum PermissionGroupType {
+    Solo
+    Group
+}
+
 model PermissionGroup {
-    id         String       @id @default(cuid())
+    id         String              @id @default(cuid())
+    type       PermissionGroupType
+    name       String
     users      User[]
     permission Permission[]
 }

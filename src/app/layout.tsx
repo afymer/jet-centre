@@ -79,12 +79,12 @@ async function AdminSideBar({ children, session }: { children: ReactNode; sessio
                 <SidebarApp
                     userInfo={await get_user_sidebar_info(session.user.email || undefined)}
                 />
-                <SidebarInset>
+                <SidebarInset className="flex h-dvh">
                     <header className="flex px-4 p-2 shrink-0 items-center gap-2 transition-[width,height] ease-linear">
                         <TopBar />
                     </header>
-                    <main className="flex flex-1 flex-col gap-4 p-4 pt-0">
-                        <div className="min-h-0 flex-1">{children}</div>
+                    <main className="flex flex-1 flex-col gap-4 p-4 pt-0 h-full min-h-0">
+                        <div className="min-h-0 flex-1 flex flex-col">{children}</div>
                     </main>
                 </SidebarInset>
             </SidebarProvider>
