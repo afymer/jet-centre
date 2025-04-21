@@ -16,8 +16,8 @@ import { auth } from './actions/auth';
 
 import type { Session } from 'next-auth';
 import type { NextRequest } from 'next/server';
-import { authorizedRoutes, DEFAULT_LOGIN_REDIRECT, UNAUTHORIZED_REDIRECT } from './routes';
-import { redis } from './db';
+import { DEFAULT_LOGIN_REDIRECT, UNAUTHORIZED_REDIRECT } from './routes';
+import prisma, { redis } from './db';
 import { env } from 'process';
 
 /**
@@ -36,17 +36,6 @@ interface NextAuthRequest extends NextRequest {
 export default auth(async (request: NextAuthRequest) => {
     const session = request.auth;
     const isLoggedIn = !!session?.user.email;
-    const position = session?.user.position;
-
-    if (!env.NO_CACHE) {
-        const res = await redis?.get('test');
-        console.log('redis returned', res);
-        if (res === null) {
-            redis?.set('test', 0);
-        } else {
-            redis?.incr('test');
-        }
-    }
 
     if (process.env.DEV_MODE) {
         return;
@@ -54,25 +43,74 @@ export default auth(async (request: NextAuthRequest) => {
 
     const { pathname } = request.nextUrl;
 
-    if (isLoggedIn) {
-        if (pathname === '/auth/signin') {
-            return NextResponse.redirect(new URL(DEFAULT_LOGIN_REDIRECT, request.nextUrl));
-        }
-    } else {
+    if (!isLoggedIn) {
         if (pathname !== '/auth/signin') {
             return NextResponse.redirect(new URL('/auth/signin', request.nextUrl));
+        } else {
+            return NextResponse.next();
         }
     }
 
-    const pathnamePosition = '/' + pathname.split('/')[1];
-    if (pathnamePosition != UNAUTHORIZED_REDIRECT) {
-        const authorizedPath = authorizedRoutes[position as keyof typeof authorizedRoutes];
-        const isAuthorized =
-            authorizedRoutes.default.includes(pathnamePosition) ||
-            authorizedPath?.includes(pathnamePosition);
-        if (!isAuthorized && isLoggedIn) {
-            return NextResponse.redirect(new URL(UNAUTHORIZED_REDIRECT, request.nextUrl));
+    if (pathname === '/auth/signin') {
+        return NextResponse.redirect(new URL(DEFAULT_LOGIN_REDIRECT, request.nextUrl));
+    }
+
+    // At this point any user is logged in.
+
+    let cacheHit = false;
+    if (!env.NO_CACHE) {
+        const key = 'access-' + session.user.email;
+        cacheHit = (await redis?.get(key)) !== null;
+    }
+
+    let allowedRoutes: {
+        allowedRoute: string;
+        allowSubroutes: boolean;
+    }[] = [];
+    if (!cacheHit) {
+        allowedRoutes = await prisma.permission.findMany({
+            select: {
+                allowedRoute: true,
+                allowSubroutes: true,
+            },
+            where: {
+                permissionGroups: {
+                    every: {
+                        users: {
+                            every: {
+                                person: {
+                                    email: {
+                                        equals: session.user.email ?? '',
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        });
+    } else {
+        // const key = 'access-' + session.user.email;
+        // await redis?.hget(key, '');
+        // const res = await redis?.get('test');
+        // console.log('redis returned', res);
+        // if (res === null) {
+        //     redis?.set('test', 0);
+        // } else {
+        //     redis?.incr('test');
+        // }
+    }
+
+    const isAllowed = allowedRoutes.some(({ allowedRoute, allowSubroutes }) => {
+        if (allowSubroutes) {
+            return pathname === allowedRoute || pathname.startsWith(`${allowedRoute}`);
+        } else {
+            return pathname === allowedRoute;
         }
+    });
+
+    if (pathname != UNAUTHORIZED_REDIRECT && !isAllowed) {
+        return NextResponse.redirect(new URL(UNAUTHORIZED_REDIRECT, request.nextUrl));
     }
 
     return NextResponse.next();
