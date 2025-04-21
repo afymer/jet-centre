@@ -12,12 +12,13 @@ model Person {
 }
 
 model User {
-    id             String        @id @default(cuid())
-    person         Person        @relation(fields: [personId], references: [id])
-    personId       String        @unique
-    settings       UserSettings? @relation(fields: [userSettingsId], references: [id])
-    admin          Admin?
-    userSettingsId String?
+    id               String            @id @default(cuid())
+    person           Person            @relation(fields: [personId], references: [id])
+    personId         String            @unique
+    settings         UserSettings?     @relation(fields: [userSettingsId], references: [id])
+    admin            Admin?
+    userSettingsId   String?
+    permissionGroups PermissionGroup[]
 }
 
 model Admin {
@@ -53,4 +54,17 @@ model Address {
     country String
     people  Person[]
     company Company?
+}
+
+model PermissionGroup {
+    id         String       @id @default(cuid())
+    users      User[]
+    permission Permission[]
+}
+
+model Permission {
+    id               String            @id @default(cuid())
+    permissionGroups PermissionGroup[]
+    allowedRoute     String
+    allowSubroutes   Boolean
 }
