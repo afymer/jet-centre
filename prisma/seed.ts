@@ -10,6 +10,8 @@ const prisma = new PrismaClient();
 async function seed_dev() {
     const email = process.env.ADMIN_EMAIL || 'example@telecom-etude.fr';
     const position = process.env.ADMIN_POSITION || 'president';
+    const firstName = process.env.ADMIN_FIRSTNAME || 'Prénom';
+    const lastName = process.env.ADMIN_LASTNAME || 'Nom';
 
     await prisma.admin.create({
         data: {
@@ -19,8 +21,8 @@ async function seed_dev() {
                     person: {
                         create: {
                             email,
-                            firstName: '',
-                            lastName: '',
+                            firstName,
+                            lastName,
                         },
                     },
                 },
@@ -76,27 +78,6 @@ async function seed_dev() {
             },
         },
     });
-
-    const dummy: number[] = [];
-    for (let index = 0; index < 100; index++) {
-        dummy.push(index);
-    }
-    await Promise.all(
-        dummy.map((i) =>
-            prisma.permissionGroup.create({
-                data: {
-                    name: i.toString(),
-                    permission: {
-                        create: {
-                            allowedRoute: '/info',
-                            allowSubroutes: true,
-                        },
-                    },
-                    type: 'Group',
-                },
-            })
-        )
-    );
 }
 
 async function seed_prod() {
@@ -110,8 +91,8 @@ async function seed_prod() {
                     person: {
                         create: {
                             email,
-                            firstName: '',
-                            lastName: '',
+                            firstName: 'Prénom',
+                            lastName: 'Nom',
                         },
                     },
                 },
