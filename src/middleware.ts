@@ -18,7 +18,6 @@ import type { Session } from 'next-auth';
 import type { NextRequest } from 'next/server';
 import { DEFAULT_LOGIN_REDIRECT, UNAUTHORIZED_REDIRECT } from './routes';
 import prisma, { redis } from './db';
-import { env } from 'process';
 
 /**
  * Extends the internal NextAuth type to add `auth` session.
@@ -58,8 +57,8 @@ export default auth(async (request: NextAuthRequest) => {
     // At this point any user is logged in.
 
     let cacheHit = false;
-    if (!env.NO_CACHE) {
-        const key = 'access-' + session.user.email;
+    const key = 'access-' + session.user.email + '-allowed-routes';
+    if (!process.env.NO_CACHE) {
         cacheHit = (await redis?.get(key)) !== null;
     }
 
@@ -89,16 +88,9 @@ export default auth(async (request: NextAuthRequest) => {
                 },
             },
         });
+        await redis?.set(key, JSON.stringify(allowedRoutes));
     } else {
-        // const key = 'access-' + session.user.email;
-        // await redis?.hget(key, '');
-        // const res = await redis?.get('test');
-        // console.log('redis returned', res);
-        // if (res === null) {
-        //     redis?.set('test', 0);
-        // } else {
-        //     redis?.incr('test');
-        // }
+        allowedRoutes = JSON.parse((await redis?.get(key)) ?? '');
     }
 
     const isAllowed = allowedRoutes.some(({ allowedRoute, allowSubroutes }) => {

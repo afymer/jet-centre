@@ -2,7 +2,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { PermissionGroupType } from '@prisma/client';
+import { Admin, PermissionGroupType } from '@prisma/client';
 import { ColumnDef } from '@tanstack/react-table';
 import { Column } from '@tanstack/react-table';
 
@@ -56,21 +56,16 @@ export function DataTableColumnFooter<TData, TValue>({
     return <Input placeholder={title} className={className} />;
 }
 
-export const columns: ColumnDef<PermissionGroup>[] = [
+export const columns: ColumnDef<Admin>[] = [
     {
         accessorKey: 'id',
         header: ({ column }) => <DataTableColumnHeader column={column} title="Id" />,
         footer: ({ column }) => <DataTableColumnFooter column={column} title="Id" />,
     },
     {
-        accessorKey: 'type',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Type de groupe" />,
-        cell: ({ row }) => {
-            const type = row.getValue('type');
-            const solo = type == 'Solo';
-            return solo ? <Badge variant="green">Solo</Badge> : <Badge variant="blue">Group</Badge>;
-        },
-        footer: ({ column }) => <DataTableColumnFooter column={column} title="Type de groupe" />,
+        accessorKey: 'position',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Position" />,
+        footer: ({ column }) => <DataTableColumnFooter column={column} title="Position" />,
     },
     {
         accessorKey: 'name',

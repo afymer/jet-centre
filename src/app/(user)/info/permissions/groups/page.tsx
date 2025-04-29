@@ -1,6 +1,6 @@
 import { getPermissionGroups } from './actions';
-import { DataTable } from './data-table';
 import { columns, PermissionGroup } from './columns';
+import { StaticDataTable } from '@/components/data/static/data-table';
 
 export default async function Page() {
     const groups = await getPermissionGroups();
@@ -15,5 +15,5 @@ export default async function Page() {
             };
         }) ?? [];
 
-    return <DataTable columns={columns} data={data} />;
+    return <StaticDataTable columns={columns} data={data} />;
 }

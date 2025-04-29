@@ -14,7 +14,9 @@ import {
 import {
     Table,
     TableBody,
+    TableCaption,
     TableCell,
+    TableFooter,
     TableHead,
     TableHeader,
     TableRow,
@@ -27,15 +29,23 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[];
     data: TData[];
+    createNewEntry?: (entry: TData) => Promise<void>;
 }
 
-export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData, TValue>) {
+export function StaticDataTable<TData, TValue>({
+    columns,
+    data,
+    createNewEntry,
+}: DataTableProps<TData, TValue>) {
+    // TODO: add dynamic data fetching to prevent loading the whole table on every call
     const [sorting, setSorting] = React.useState<SortingState>([]);
     const [pageSize, setPageSize] = useState(50);
+    // const [pendingNewEntries, setPendingNewEntries] = useState<TData[]>([]);
 
     const table = useReactTable({
         data,
@@ -97,7 +107,7 @@ export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData
             </div>
 
             {/* Table Section */}
-            <Table className="flex-grow rounded-md border border-collapse">
+            <Table className="flex-grow rounded-md border border-collapse overflow-scroll">
                 <TableHeader className="sticky top-0 bg-background">
                     {table.getHeaderGroups().map((headerGroup) => (
                         <TableRow key={headerGroup.id} className="hover:none bg-muted/50">
@@ -116,15 +126,37 @@ export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData
                 </TableHeader>
                 <TableBody className="">
                     {table.getRowModel().rows?.length ? (
-                        table.getRowModel().rows.map((row) => (
-                            <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
-                                {row.getVisibleCells().map((cell) => (
-                                    <TableCell key={cell.id}>
-                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                    </TableCell>
-                                ))}
-                            </TableRow>
-                        ))
+                        <>
+                            {table.getRowModel().rows.map((row) => (
+                                <TableRow
+                                    key={row.id}
+                                    data-state={row.getIsSelected() && 'selected'}
+                                >
+                                    {row.getVisibleCells().map((cell) => (
+                                        <TableCell key={cell.id}>
+                                            {flexRender(
+                                                cell.column.columnDef.cell,
+                                                cell.getContext()
+                                            )}
+                                        </TableCell>
+                                    ))}
+                                </TableRow>
+                            ))}
+                            {/* {pendingNewEntries.map((row, index) => (
+                                <TableRow key={index} data-state="pending">
+                                    {columns.map((column) => (
+                                        <TableCell key={column.id}>
+                                            {flexRender(column.cell, {
+                                                row: table.getRowModel().rows[index], // Use the correct row object
+                                                cell: {
+                                                    getValue: () => row[column.id],
+                                                },
+                                            })}
+                                        </TableCell>
+                                    ))}
+                                </TableRow>
+                            ))} */}
+                        </>
                     ) : (
                         <TableRow>
                             <TableCell colSpan={columns.length} className="h-24 text-center">
@@ -133,6 +165,22 @@ export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData
                         </TableRow>
                     )}
                 </TableBody>
+                <TableFooter className="sticky top-0 bg-background">
+                    {table.getFooterGroups().map((footerGroup) => (
+                        <TableRow key={footerGroup.id} className="hover:none bg-muted/50">
+                            {footerGroup.headers.map((footer) => (
+                                <TableCell key={footer.id}>
+                                    {footer.isPlaceholder
+                                        ? null
+                                        : flexRender(
+                                              footer.column.columnDef.footer,
+                                              footer.getContext()
+                                          )}
+                                </TableCell>
+                            ))}
+                        </TableRow>
+                    ))}
+                </TableFooter>
             </Table>
 
             {/* Pagination */}
