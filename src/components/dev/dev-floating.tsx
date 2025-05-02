@@ -6,7 +6,7 @@ export default function DevWindow() {
     return (
         <>
             {process.env.NODE_ENV !== 'production' && (
-                <DraggableFloatingWindow>
+                <DraggableFloatingWindow title="Dev Tools">
                     <div className="flex flex-col space-y-2">
                         <Button>Button A</Button>
                         <Button>Button B</Button>

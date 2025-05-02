@@ -18,7 +18,13 @@ interface WindowState {
     expand: 'expanded' | 'collapsed';
 }
 
-export default function DraggableFloatingWindow({ children }: { children?: ReactNode }) {
+export default function DraggableFloatingWindow({
+    children,
+    title,
+}: {
+    children?: ReactNode;
+    title: string;
+}) {
     const [windowPosition, setWindowPosition] = useState<WindowPosition>({
         x: (window?.innerWidth || 500) - 500,
         y: (window?.innerHeight || 500) - 500,
@@ -114,7 +120,7 @@ export default function DraggableFloatingWindow({ children }: { children?: React
                                 -
                             </Button>
                         </div>
-                        <div className="pl-4 pr-4">Window Title</div>
+                        <div className="pl-4 pr-4">{title}</div>
                     </div>
                     <div className="p-4 bg-box-background h-full">
                         {children}
