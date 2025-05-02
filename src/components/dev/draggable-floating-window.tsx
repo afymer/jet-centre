@@ -25,6 +25,7 @@ export default function DraggableFloatingWindow({ children }: { children?: React
     });
     const [windowSize, setWindowSize] = useState<WindowSize>({ width: 500, height: 500 });
     const [drag, setDrag] = useState<boolean>(false);
+    const [dragged, setDragged] = useState<boolean>(false);
     const [resize, setResize] = useState<boolean>(false);
     const [dragOffset, setDragOffset] = useState<WindowPosition>({ x: 0, y: 0 });
     const [windowState, setWindowState] = useState<WindowState>({ expand: 'expanded' });
@@ -40,6 +41,7 @@ export default function DraggableFloatingWindow({ children }: { children?: React
 
     const handlePointerDownMove: PointerEventHandler<HTMLDivElement> = (event) => {
         setDrag(true);
+        setDragged(false);
         setDragOffset({
             x: event.clientX - windowPosition.x,
             y: event.clientY - windowPosition.y,
@@ -48,11 +50,17 @@ export default function DraggableFloatingWindow({ children }: { children?: React
 
     const handlePointerDownResize: PointerEventHandler<HTMLDivElement> = (event) => {
         setResize(true);
-        // const rect = resizeRef.current?.getBoundingClientRect();
         setDragOffset({
             x: event.clientX - windowSize.width,
             y: event.clientY - windowSize.height,
         });
+    };
+
+    const handlePointerUpMove: PointerEventHandler<HTMLButtonElement> = () => {
+        if (!dragged) {
+            toggleExpandState();
+        }
+        setDrag(false);
     };
 
     useEffect(() => {
@@ -63,6 +71,7 @@ export default function DraggableFloatingWindow({ children }: { children?: React
 
         const handlePointerMove = (event: PointerEvent) => {
             if (drag) {
+                setDragged(true);
                 setWindowPosition({
                     x: event.clientX - dragOffset.x,
                     y: event.clientY - dragOffset.y,
@@ -101,7 +110,7 @@ export default function DraggableFloatingWindow({ children }: { children?: React
                         onPointerDown={handlePointerDownMove}
                     >
                         <div>
-                            <Button variant="ghost" onClick={toggleExpandState}>
+                            <Button variant="ghost" onPointerUp={handlePointerUpMove}>
                                 -
                             </Button>
                         </div>
@@ -122,11 +131,8 @@ export default function DraggableFloatingWindow({ children }: { children?: React
                     className="absolute rounded-full z-20 flex flex-col overflow-hidden bg-box-title"
                     style={{ left: windowPosition.x + 'px', top: windowPosition.y + 'px' }}
                     onPointerDown={handlePointerDownMove}
-                    onClick={() => {
-                        if (!drag) toggleExpandState();
-                    }}
                 >
-                    <Button variant="ghost" onClick={toggleExpandState}>
+                    <Button variant="ghost" onPointerUp={handlePointerUpMove}>
                         +
                     </Button>
                 </div>
