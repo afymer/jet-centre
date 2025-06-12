@@ -26,8 +26,8 @@ export default function DraggableFloatingWindow({
     title: string;
 }) {
     const [windowPosition, setWindowPosition] = useState<WindowPosition>({
-        x: (window?.innerWidth || 500) - 500,
-        y: (window?.innerHeight || 500) - 500,
+        x: 0,
+        y: 0,
     });
     const [windowSize, setWindowSize] = useState<WindowSize>({ width: 500, height: 500 });
     const [drag, setDrag] = useState<boolean>(false);
@@ -97,7 +97,7 @@ export default function DraggableFloatingWindow({
             document.removeEventListener('pointerup', handlePointerUp);
             document.removeEventListener('pointermove', handlePointerMove);
         };
-    });
+    }, [drag, resize, dragOffset.x, dragOffset.y]);
 
     return (
         <>
