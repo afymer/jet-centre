@@ -1,6 +1,6 @@
 services:
     jet-centre:
-        container_name: jet-centre
+        container_name: jc-app
         build:
             context: ./
             dockerfile: ./dev.Dockerfile
@@ -35,7 +35,7 @@ services:
 
     studio:
         image: oven/bun:1
-        container_name: prisma-studio
+        container_name: jc-prisma-studio
         working_dir: /app
         volumes:
             - .:/app
@@ -52,6 +52,7 @@ services:
 
     postgres:
         image: postgres:15
+        container_name: jc-postgres
         environment:
             POSTGRES_USER: postgres
             POSTGRES_PASSWORD: postgres
@@ -63,6 +64,7 @@ services:
 
     cache:
         image: redis:latest
+        container_name: jc-redis
         restart: always
         ports:
             - '6379:6379'

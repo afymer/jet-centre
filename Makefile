@@ -1,46 +1,52 @@
 COMPOSE := docker compose
 EXEC := docker exec
 
-CONTAINER_NAME := jet-centre
+APP_CONTAINER_NAME := jc-app
+DB_CONTAINER_NAME := jc-postgres
+CACHE_CONTAINER_NAME := jc-redis
+
 PACKAGE_MANAGER := npm
 PREFIX := bun # npm
 
+DEV_COMPOSE := compose.dev.yml
+PROD_COMPOSE := compose.prod.yml
+
 docker-start:
-	docker start $(CONTAINER_NAME) jet-centre-postgres-1 jet-centre-cache-1
+	docker start $(APP_CONTAINER_NAME) $(DB_CONTAINER_NAME) $(CACHE_CONTAINER_NAME)
 dev:
-	$(COMPOSE) -f docker-compose.dev.yml up --build
+	$(COMPOSE) -f $(DEV_COMPOSE) up --watch
 
 build:
-	$(COMPOSE) -f docker-compose.dev.yml build
+	$(COMPOSE) -f $(DEV_COMPOSE) build
 
 fmt:
-	$(EXEC) $(CONTAINER_NAME) $(PACKAGE_MANAGER) run fmt
+	$(EXEC) $(APP_CONTAINER_NAME) $(PACKAGE_MANAGER) run fmt
 
 studio:
-	$(EXEC) $(CONTAINER_NAME) $(PREFIX)x prisma studio
+	$(EXEC) $(APP_CONTAINER_NAME) $(PREFIX)x prisma studio
 
 seed: reset_db
 	$(EXEC) $(CONTAINER_NAME) $(PREFIX)x prisma db seed -- --environment dev
 
 seed-prod: reset_db
-	$(EXEC) $(CONTAINER_NAME) $(PREFIX)x prisma db seed -- --environment prod
+	$(EXEC) $(APP_CONTAINER_NAME) $(PREFIX)x prisma db seed -- --environment prod
 
 reset_db:
-	$(EXEC) $(CONTAINER_NAME) $(PREFIX)x prisma db push --force-reset
+	$(EXEC) $(APP_CONTAINER_NAME) $(PREFIX)x prisma db push --force-reset
 
 migrate:
-	$(EXEC) $(CONTAINER_NAME) $(PREFIX)x prisma migrate deploy
+	$(EXEC) $(APP_CONTAINER_NAME) $(PREFIX)x prisma migrate deploy
 
 stop:
 	$(COMPOSE) down
 
 build-prod:
-	$(COMPOSE) -f docker-compose.yml build
+	$(COMPOSE) -f $(PROD_COMPOSE) build
 
 run-prod:
-	$(COMPOSE) -f docker-compose.yml up -d
+	$(COMPOSE) -f $(PROD_COMPOSE) up -d
 
 stop-prod:
-	$(COMPOSE) -f docker-compose.yml down
+	$(COMPOSE) -f $(PROD_COMPOSE) down
 
 .PHONY: build dev studio seed reset_db stop build-prod run-prod stop-prod
