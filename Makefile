@@ -1,8 +1,12 @@
 COMPOSE := docker compose
 EXEC := docker exec
 
+CONTAINER_NAME := jet-centre
+PACKAGE_MANAGER := npm
+PREFIX := bun # npm
+
 docker-start:
-	docker start app-dev jet-centre-postgres-1 jet-centre-cache-1
+	docker start $(CONTAINER_NAME) jet-centre-postgres-1 jet-centre-cache-1
 dev:
 	$(COMPOSE) -f docker-compose.dev.yml up --build
 
@@ -10,22 +14,22 @@ build:
 	$(COMPOSE) -f docker-compose.dev.yml build
 
 fmt:
-	$(EXEC) app-dev npm run fmt
+	$(EXEC) $(CONTAINER_NAME) $(PACKAGE_MANAGER) run fmt
 
 studio:
-	$(EXEC) app-dev npx prisma studio
+	$(EXEC) $(CONTAINER_NAME) $(PREFIX)x prisma studio
 
 seed: reset_db
-	$(EXEC) app-dev npx prisma db seed -- --environment dev
+	$(EXEC) $(CONTAINER_NAME) $(PREFIX)x prisma db seed -- --environment dev
 
 seed-prod: reset_db
-	$(EXEC) app-dev npx prisma db seed -- --environment prod
+	$(EXEC) $(CONTAINER_NAME) $(PREFIX)x prisma db seed -- --environment prod
 
 reset_db:
-	$(EXEC) app-dev npx prisma db push --force-reset
+	$(EXEC) $(CONTAINER_NAME) $(PREFIX)x prisma db push --force-reset
 
 migrate:
-	$(EXEC) app-dev npx prisma migrate deploy
+	$(EXEC) $(CONTAINER_NAME) $(PREFIX)x prisma migrate deploy
 
 stop:
 	$(COMPOSE) down

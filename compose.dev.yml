@@ -1,0 +1,86 @@
+services:
+    jet-centre:
+        container_name: jet-centre
+        build:
+            context: ./
+            dockerfile: ./dev.Dockerfile
+
+        env_file:
+            - .env
+
+        volumes:
+            - bun-cache:/root/.bun
+            - ./public:/app/public
+            - ./prisma:/app/prisma
+
+        restart: no
+        ports:
+            - 5005:5005
+        networks:
+            - app-network
+            - internet
+        depends_on:
+            - postgres
+            - cache
+
+        develop:
+            watch:
+                - action: sync
+                  path: ./
+                  target: /app
+                  ignore:
+                      - node_modules/
+                      - prisma
+                      - public
+
+    studio:
+        image: oven/bun:1
+        container_name: prisma-studio
+        working_dir: /app
+        volumes:
+            - .:/app
+        ports:
+            - '5555:5555'
+        env_file:
+            - .env
+        command: sh -c "bun install --save-dev prisma && bunx prisma generate && bunx prisma studio --hostname 0.0.0.0 --port 5555"
+        networks:
+            - app-network
+        depends_on:
+            - postgres
+            - jet-centre
+
+    postgres:
+        image: postgres:15
+        environment:
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres
+            POSTGRES_DB: maindb
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        networks:
+            - app-network
+
+    cache:
+        image: redis:latest
+        restart: always
+        ports:
+            - '6379:6379'
+        command: redis-server --save 20 1
+        volumes:
+            - cache:/data
+        networks:
+            - cache-network
+
+networks:
+    app-network:
+        external: false
+    internet:
+        driver: bridge
+    cache-network:
+        driver: bridge
+
+volumes:
+    postgres_data:
+    cache:
+    bun-cache:
