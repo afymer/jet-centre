@@ -5,40 +5,56 @@ APP_CONTAINER_NAME := jc-app
 DB_CONTAINER_NAME := jc-postgres
 CACHE_CONTAINER_NAME := jc-redis
 
-PACKAGE_MANAGER := npm
-PREFIX := bun # npm
+APP_SERVICE_NAME := app
+DB_SERVICE_NAME := postgres
+CACHE_SERVICE_NAME := cache
+
+PREFIX := bun
 
 DEV_COMPOSE := compose.dev.yml
 PROD_COMPOSE := compose.prod.yml
 
-dev:
-	$(COMPOSE) -f $(DEV_COMPOSE) up
+# Development
+up:
+	$(COMPOSE) -f $(DEV_COMPOSE) up -d
+
+down:
+	$(COMPOSE) -f $(DEV_COMPOSE) down
 
 build:
 	$(COMPOSE) -f $(DEV_COMPOSE) build
 
-seed: reset-db
-	$(EXEC) $(CONTAINER_NAME) $(PREFIX)x prisma db seed -- --environment dev
+reload: down up
 
-seed-prod: reset-db
-	$(EXEC) $(APP_CONTAINER_NAME) $(PREFIX)x prisma db seed -- --environment prod
+logs:
+	$(COMPOSE) -f $(DEV_COMPOSE) logs -f
+
+
+# Database
+generate:
+	$(COMPOSE) -f $(DEV_COMPOSE) exec $(APP_SERVICE_NAME) bun x prisma generate
 
 reset-db:
-	$(EXEC) $(APP_CONTAINER_NAME) $(PREFIX)x prisma db push --force-reset
+	$(COMPOSE) -f $(DEV_COMPOSE) exec $(APP_SERVICE_NAME) bun x prisma migrate reset
 
-migrate:
-	$(EXEC) $(APP_CONTAINER_NAME) $(PREFIX)x prisma migrate deploy
+migrate-db:
+	$(COMPOSE) -f $(DEV_COMPOSE) exec $(APP_SERVICE_NAME) bun x prisma migrate dev
 
-stop:
-	$(COMPOSE) down
+seed-db:
+	$(COMPOSE) -f $(DEV_COMPOSE) exec $(APP_SERVICE_NAME) bun x prisma db seed -- --environment dev
 
+
+# Prod
 build-prod:
 	$(COMPOSE) -f $(PROD_COMPOSE) build
 
-run-prod:
+up-prod:
 	$(COMPOSE) -f $(PROD_COMPOSE) up -d
 
-stop-prod:
+down-prod:
 	$(COMPOSE) -f $(PROD_COMPOSE) down
 
-.PHONY: dev build seed seed-prod reset-db migrate stop build-prod run-prod stop-prod
+deploy: build-prod up-prod
+
+.PHONY: up down build reset-db migrate-db seed-db build-prod up-prod down-prod deploy
+

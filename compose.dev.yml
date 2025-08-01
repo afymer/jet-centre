@@ -18,6 +18,8 @@ services:
             - .:/app
             - /app/node_modules
             - /app/.next
+            - prisma-generated:/app/node_modules/.prisma
+            - prisma-client:/app/node_modules/@prisma/client
         ports:
             - 5005:5005
 
@@ -66,4 +68,6 @@ volumes:
     cache:
     bun-cache:
     app-data:
+    prisma-generated:
+    prisma-client:
 
