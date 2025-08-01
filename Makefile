@@ -12,7 +12,7 @@ DEV_COMPOSE := compose.dev.yml
 PROD_COMPOSE := compose.prod.yml
 
 dev:
-	$(COMPOSE) -f $(DEV_COMPOSE) up --watch
+	$(COMPOSE) -f $(DEV_COMPOSE) up
 
 build:
 	$(COMPOSE) -f $(DEV_COMPOSE) build

@@ -1,26 +1,18 @@
 services:
-    app:
+    jet-centre:
         container_name: jc-app
         build:
-            context: .
-            target: dev
-        restart: always
-        command: bun run dev
-        environment:
-            - NODE_ENV=development
-            # For our dear WSL2 users :)
-            - WATCHPACK_POLLING=true
+            context: ./
+            target: runner
 
         env_file:
             - .env
+        environment:
+            - NODE_ENV=production
 
-        volumes:
-            - .:/app
-            - /app/node_modules
-            - /app/.next
+        restart: always
         ports:
-            - 5005:5005
-
+            - 3000:3000
         networks:
             - db-network
             - cache-network
