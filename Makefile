@@ -64,6 +64,9 @@ up-prod:
 down-prod:
 	$(COMPOSE) -f $(PROD_COMPOSE) down
 
+migrate-prod:
+	$(COMPOSE) -f $(PROD_COMPOSE) exec $(APP_SERVICE_NAME) bun x prisma migrate deploy
+
 deploy: build-prod up-prod
 
 .PHONY: up down build reload logs slogs reset-db migrate-db seed-db build-prod up-prod down-prod deploy
