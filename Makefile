@@ -14,6 +14,8 @@ PREFIX := bun
 DEV_COMPOSE := compose.dev.yml
 PROD_COMPOSE := compose.prod.yml
 
+TMUX_SESSION := dev-logs
+
 # Development
 up:
 	$(COMPOSE) -f $(DEV_COMPOSE) up -d
@@ -29,6 +31,14 @@ reload: down up
 logs:
 	$(COMPOSE) -f $(DEV_COMPOSE) logs -f
 
+slogs:
+	tmux new-session -d -s $(TMUX_SESSION) -n logs "$(COMPOSE) -f $(DEV_COMPOSE) logs -f $(DB_SERVICE_NAME)"
+	tmux split-window -v -t $(TMUX_SESSION):0 "$(COMPOSE) -f $(DEV_COMPOSE) logs -f $(APP_SERVICE_NAME)"
+	tmux select-pane -t $(TMUX_SESSION):0.0
+	tmux split-window -h -t $(TMUX_SESSION):0.0 "$(COMPOSE) -f $(DEV_COMPOSE) logs -f $(CACHE_SERVICE_NAME)"
+	tmux select-layout -t $(TMUX_SESSION):0 tiled
+	tmux select-pane -t $(TMUX_SESSION):0.0
+	tmux attach-session -t $(TMUX_SESSION)
 
 # Database
 generate:
@@ -56,5 +66,5 @@ down-prod:
 
 deploy: build-prod up-prod
 
-.PHONY: up down build reset-db migrate-db seed-db build-prod up-prod down-prod deploy
+.PHONY: up down build reload logs slogs reset-db migrate-db seed-db build-prod up-prod down-prod deploy
 
