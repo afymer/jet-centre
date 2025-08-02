@@ -87,4 +87,3 @@ volumes:
     app-data:
     prisma-generated:
     prisma-client:
-
