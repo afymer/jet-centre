@@ -6,7 +6,7 @@ async function seed_dev() {
     const email = process.env.ADMIN_EMAIL || 'example@telecom-etude.fr';
     const position = process.env.ADMIN_POSITION || 'president';
 
-    await prisma.admin.create({
+    const admin = await prisma.admin.create({
         data: {
             position,
             user: {
@@ -18,6 +18,33 @@ async function seed_dev() {
                             lastName: '',
                         },
                     },
+                },
+            },
+        },
+    });
+
+    const study = await prisma.study.create({
+        data: {
+            information: {
+                create: {
+                    title: 'Dummy study',
+                    code: '224042',
+                    cc: false,
+                },
+            },
+            cdps: {
+                connect: {
+                    userId: admin.userId,
+                },
+            },
+        },
+    });
+
+    await prisma.mri.create({
+        data: {
+            study: {
+                connect: {
+                    id: study.id,
                 },
             },
         },
