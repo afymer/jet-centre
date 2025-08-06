@@ -1,36 +1,19 @@
-'use client';
+import { MRIList } from '@/components/data/mri-list';
+import { getPublicMRIs } from '@/data/mri';
+import { getViewer } from '@/data/user';
 
-import { useEffect, useState } from 'react';
+export default async function Page() {
+    const viewerResult = await getViewer();
 
-import { getPublicMRIs, PublicMRI } from '@/data/mri';
-import { getCurrentUser } from '@/data/user';
+    if (viewerResult.status === 'error') {
+        return <div>Error loading viewer: {viewerResult.message}</div>;
+    }
 
-function MRICard({ mri }: { mri: PublicMRI }) {
-    return (
-        <div>
-            <div>{mri.studyName}</div>
-        </div>
-    );
-}
-
-export default function Page() {
-    const [MRIs, setMRIs] = useState<PublicMRI[]>([]);
-
-    useEffect(() => {
-        async function fetchMris() {
-            const viewer = await getCurrentUser();
-            if (!viewer) return;
-            const MRIs = await getPublicMRIs(viewer);
-            setMRIs(MRIs);
-        }
-        fetchMris();
-    }, []);
+    const initialMRIs = await getPublicMRIs(viewerResult.viewer);
 
     return (
         <div>
-            {MRIs.map((mri) => (
-                <MRICard key={mri.id} mri={mri} />
-            ))}
+            <MRIList initialMRIs={initialMRIs} />
         </div>
     );
 }

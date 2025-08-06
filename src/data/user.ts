@@ -4,9 +4,38 @@ import { User } from 'next-auth';
 
 import { auth } from '@/actions/auth';
 
-export type Viewer = User & { position?: string };
+import { isValidPosition, Position } from './positions';
 
-export const getCurrentUser = async (): Promise<Viewer | undefined> => {
+export type Viewer = User & { position?: Position };
+
+export enum ViewerResultErrorType {
+    InvalidPosition,
+    InvalidSession,
+}
+
+type ViewerResult =
+    | { status: 'success'; viewer: Viewer }
+    | { status: 'error'; type: ViewerResultErrorType; message: string };
+
+export const getViewer = async (): Promise<ViewerResult> => {
     const session = await auth();
-    return session?.user;
+    if (session === null)
+        return {
+            status: 'error',
+            type: ViewerResultErrorType.InvalidSession,
+            message: 'Got null session while trying to get viewer',
+        };
+    if (!isValidPosition(session.user.position))
+        return {
+            status: 'error',
+            type: ViewerResultErrorType.InvalidPosition,
+            message: `position ${session.user.position} is invalid`,
+        };
+    return {
+        status: 'success',
+        viewer: {
+            ...session,
+            position: session.user.position as Position, // Already checked
+        },
+    };
 };
