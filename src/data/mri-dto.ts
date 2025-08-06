@@ -30,6 +30,6 @@ function isExecutiveBoard(viewer: Viewer): boolean {
     return executivePositions.includes(viewer.position);
 }
 
-export function canUserSeeMRI(viewer: Viewer, mri: MriWithStudy) {
+export async function canUserSeeMRI(viewer: Viewer, mri: MriWithStudy) {
     return !mri.study.information.confidential || isExecutiveBoard(viewer);
 }
