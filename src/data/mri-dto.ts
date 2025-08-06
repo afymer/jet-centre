@@ -2,6 +2,7 @@
 
 import { Prisma } from '@prisma/client';
 
+import { executivePositions } from './positions';
 import { Viewer } from './user';
 
 type MriWithStudy = Prisma.MriGetPayload<{
@@ -13,17 +14,6 @@ type MriWithStudy = Prisma.MriGetPayload<{
         };
     };
 }>;
-
-const executivePositions = [
-    'president',
-    'internal-vice-president',
-    'operational-vice-president',
-    'external-vice-president',
-    'treasurer',
-    'vice-treasurer',
-    'general-secretary',
-    'commercial-director',
-];
 
 function isExecutiveBoard(viewer: Viewer): boolean {
     if (!viewer.position) return false;
