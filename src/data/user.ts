@@ -8,7 +8,7 @@ import { isValidPosition, Position } from './positions';
 
 export type Viewer = User & { position?: Position };
 
-export enum ViewerResultErrorType {
+enum ViewerResultErrorType {
     InvalidPosition,
     InvalidSession,
 }
