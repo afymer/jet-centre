@@ -1,5 +1,7 @@
 /// Warning: this file may end up on the client
 
+import { Viewer } from './user';
+
 export const positions = [
     'president',
     'internal-vice-president',
@@ -28,4 +30,9 @@ export type ExecutivePosition = (typeof executivePositions)[number];
 
 export function isValidPosition(pos: string): pos is Position {
     return (positions as readonly string[]).includes(pos);
+}
+
+export function isExecutiveBoard(viewer: Viewer): boolean {
+    if (!viewer.position) return false;
+    return executivePositions.includes(viewer.position);
 }
