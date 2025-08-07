@@ -1,7 +1,8 @@
 'use client';
 
 import { Domain, Level, MriStatus } from '@prisma/client';
-import { useCallback, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { FaQuestion } from 'react-icons/fa6';
 
 import { Button } from '@/components/ui/button';
@@ -10,15 +11,6 @@ import { getViewer } from '@/data/user';
 import { cn } from '@/lib/utils';
 
 import { Badge } from '../ui/badge';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogPortal,
-    DialogTitle,
-    DialogTrigger,
-} from '../ui/dialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 
 function MRIDifficultyLabel({ difficulty }: { difficulty: Level | null }) {
@@ -165,33 +157,104 @@ function MRIStatusLabel({ status }: { status: MriStatus }) {
 }
 
 function MRICard({ mri }: { mri: PublicMRI }) {
+    const root = useRef<HTMLDivElement | null>(null);
+    const parent = useRef<HTMLDivElement | null>(null);
+    const impostor = useRef<HTMLDivElement | null>(null);
+    const background = useRef<HTMLDivElement | null>(null);
+    const [open, setOpen] = useState(false);
+
     const title = mri.mriTitle ?? 'No title';
+
+    const toggle = () => {
+        if (open) shrink();
+        else enlarge();
+    };
+
+    useEffect(() => {
+        if (!background.current) return;
+        document.body.appendChild(background.current);
+    }, [background]);
+
+    const enlarge = () => {
+        if (!parent.current) return;
+        if (!root.current) return;
+        if (!impostor.current) return;
+        if (!background.current) return;
+        const rect = root.current.getBoundingClientRect();
+        impostor.current.style.width = rect.width + 'px';
+        impostor.current.style.height = rect.height + 'px';
+        document.body.appendChild(root.current);
+        root.current.style.left = rect.left + 'px';
+        root.current.style.top = rect.top + 'px';
+        root.current.style.width = rect.width + 'px';
+        root.current.style.height = rect.height + 'px';
+        setTimeout(() => {
+            if (!root.current) return;
+            root.current.style.left = '50%';
+            root.current.style.top = '50%';
+            root.current.style.translate = '-50% -50%';
+            root.current.style.width = '';
+            root.current.style.height = '';
+        });
+        setOpen(true);
+    };
+
+    const shrink = () => {
+        if (!parent.current) return;
+        if (!root.current) return;
+        if (!impostor.current) return;
+        const rects = root.current.getBoundingClientRect();
+        impostor.current.style.width = rects.width + 'px';
+        impostor.current.style.height = rects.height + 'px';
+        root.current.style.translate = '0 0';
+        parent.current.appendChild(root.current);
+        setOpen(false);
+    };
+
     return (
-        <div className="bg-card p-4 rounded w-full space-y-6">
-            <div className="flex flex-col space-y-1">
-                <div className="text-3xl font-bold">{title}</div>
-                <div className="flex flex-row space-x-2">
-                    <MRIDifficultyLabel difficulty={mri.mriDifficulty} />
-                    <MRIDomainLabel domain={mri.mriMainDomain} />
-                    <MRIStatusLabel status={mri.mriStatus} />
+        <div ref={parent} className="!mt-0">
+            <div
+                ref={background}
+                className={cn(
+                    'w-full h-full top-0 left-0 pointer-events-none absolute bg-black/0 transition-all duration-400 z-[1000]',
+                    open && 'pointer-events-auto bg-black/80'
+                )}
+                onClick={() => shrink()}
+            ></div>
+            <div ref={impostor} className={cn(!open && 'block', 'hidden')}></div>
+            <div
+                className={cn(
+                    open && 'absolute z-[1002] w-1/3 !h-fit',
+                    'transition-all duration-500 bg-card p-4 rounded space-y-6 h-full group'
+                )}
+                ref={root}
+            >
+                <div className="flex flex-col space-y-1">
+                    <div className="text-3xl font-bold">{title}</div>
+                    <div className="flex flex-row space-x-2">
+                        <MRIDifficultyLabel difficulty={mri.mriDifficulty} />
+                        <MRIDomainLabel domain={mri.mriMainDomain} />
+                        <MRIStatusLabel status={mri.mriStatus} />
+                    </div>
+                </div>
+                <div
+                    className="max-h-[4rem] overflow-hidden relative cursor-pointer"
+                    onClick={() => toggle()}
+                >
+                    <div
+                        className={cn(
+                            'absolute top-0 left-0 right-0 bottom-0 bg-gradient-to-t from-card to-transparent',
+                            open && 'hidden text-balance'
+                        )}
+                    />
+                    {!open && (
+                        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/4">
+                            <ChevronDown className="size-6 group-hover:animate-bounce -translate-y-1/4 border-white" />
+                        </div>
+                    )}
+                    <div>{mri.introductionText}</div>
                 </div>
             </div>
-            <Dialog>
-                <DialogTrigger>
-                    <div className="max-h-[4rem] overflow-hidden relative cursor-pointer">
-                        <div className="absolute top-0 left-0 right-0 bottom-0 bg-gradient-to-t from-card to-transparent" />
-                        <div>{mri.introductionText}</div>
-                    </div>
-                </DialogTrigger>
-                <DialogPortal container={document.body}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>{title}</DialogTitle>
-                            <DialogDescription>{mri.introductionText}</DialogDescription>
-                        </DialogHeader>
-                    </DialogContent>
-                </DialogPortal>
-            </Dialog>
         </div>
     );
 }
@@ -227,7 +290,7 @@ export function MRIList({ initialMRIs }: { initialMRIs: PublicMRI[] }) {
                 </Button>
             </div>
 
-            <div className="grid grid-cols-4 space-y-2">
+            <div className="grid grid-cols-4 space-y-2 gap-2">
                 {status.kind === 'display' &&
                     status.MRIs.map((mri) => <MRICard key={mri.id} mri={mri} />)}
                 {status.kind === 'pending' && <div>Pending...</div>}

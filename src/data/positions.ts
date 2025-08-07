@@ -2,7 +2,7 @@
 
 import { Viewer } from './user';
 
-export const positions = [
+const positions = [
     'president',
     'internal-vice-president',
     'operational-vice-president',
@@ -15,7 +15,7 @@ export const positions = [
 
 export type Position = (typeof positions)[number];
 
-export const executivePositions: Position[] = [
+const executivePositions: Position[] = [
     'president',
     'internal-vice-president',
     'operational-vice-president',
@@ -26,7 +26,7 @@ export const executivePositions: Position[] = [
     'commercial-director',
 ];
 
-export type ExecutivePosition = (typeof executivePositions)[number];
+// export type ExecutivePosition = (typeof executivePositions)[number];
 
 export function isValidPosition(pos: string): pos is Position {
     return (positions as readonly string[]).includes(pos);
