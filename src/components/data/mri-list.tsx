@@ -8,6 +8,7 @@ import { FaQuestion } from 'react-icons/fa6';
 import { Button } from '@/components/ui/button';
 import { getPublicMRIs, PublicMRI } from '@/data/mri';
 import { getViewer } from '@/data/user';
+import { DOMAINS } from '@/db/types';
 import { cn } from '@/lib/utils';
 
 import { Badge } from '../ui/badge';
@@ -53,29 +54,6 @@ function MRIDifficultyLabel({ difficulty }: { difficulty: Level | null }) {
     );
 }
 
-const MRIDomainDesc: Record<Domain, string> = {
-    AppDev: 'AppDev',
-    Chatbot: 'Chatbot',
-    ComputerGraphics: 'ComputerGraphics',
-    ComputerVision: 'ComputerVision',
-    Cryptography: 'Cryptography',
-    Cybersecurity: 'Cybersecurity',
-    d_3D: 'd_3D',
-    DataScience: 'DataScience',
-    EmbeddedSystems: 'EmbeddedSystems',
-    Image: 'Image',
-    IntelligenceArtificielle: 'IntelligenceArtificielle',
-    Internet: 'Internet',
-    IoT: 'IoT',
-    MachineLearning: 'MachineLearning',
-    MarketAnalysis: 'MarketAnalysis',
-    MobileDev: 'MobileDev',
-    Networks: 'Networks',
-    StateOfTheArt: 'StateOfTheArt',
-    Telecommunications: 'Telecommunications',
-    WebDev: 'WebDev',
-};
-
 function MRIDomainLabel({ domain }: { domain: Domain | null }) {
     const style: {
         variant: 'secondary';
@@ -86,7 +64,7 @@ function MRIDomainLabel({ domain }: { domain: Domain | null }) {
         variant: 'secondary',
         className: 'bg-blue-500',
         label: domain === null ? 'Domaine inconnu' : (domain as string),
-        tooltip: domain === null ? 'Domaine non renseigné sur le MRI' : MRIDomainDesc[domain],
+        tooltip: domain === null ? 'Domaine non renseigné sur le MRI' : DOMAINS[domain].display,
     };
     return (
         <Tooltip delayDuration={500} disableHoverableContent>
