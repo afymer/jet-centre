@@ -104,8 +104,6 @@ export default auth(async (request: NextAuthRequest) => {
     const { pathname } = request.nextUrl;
     log(`middleware at ${pathname} [loggedIn=${isLoggedIn}] [pos=${position}] `);
 
-    return NextResponse.next();
-
     redisMiddleware();
 
     if (process.env.DEV_MODE) return NextResponse.next();
