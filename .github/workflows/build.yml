@@ -62,9 +62,6 @@ jobs:
                   DB_URL: postgres://postgres:postgres@localhost:5432/maindb
               run: bun x prisma migrate dev
 
-            - name: Generate Prisma Client
-              run: bun x prisma generate
-
             - name: Next build
               env:
                   DB_URL: postgres://postgres:postgres@postgres:5432/maindb
