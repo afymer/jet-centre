@@ -4,26 +4,26 @@ import { Viewer } from './user';
 
 const positions = [
     'president',
-    'internal-vice-president',
-    'operational-vice-president',
-    'external-vice-president',
+    'internal_vice_president',
+    'operational_vice_president',
+    'external_vice_president',
     'treasurer',
-    'vice-treasurer',
-    'general-secretary',
-    'commercial-director',
+    'vice_treasurer',
+    'general_secretary',
+    'commercial_director',
 ] as const;
 
 export type Position = (typeof positions)[number];
 
 const executivePositions: Position[] = [
     'president',
-    'internal-vice-president',
-    'operational-vice-president',
-    'external-vice-president',
+    'internal_vice_president',
+    'operational_vice_president',
+    'external_vice_president',
     'treasurer',
-    'vice-treasurer',
-    'general-secretary',
-    'commercial-director',
+    'vice_treasurer',
+    'general_secretary',
+    'commercial_director',
 ];
 
 // export type ExecutivePosition = (typeof executivePositions)[number];
