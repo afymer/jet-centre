@@ -2,22 +2,24 @@ import { FaGears, FaHouse, FaNoteSticky } from 'react-icons/fa6';
 import { GiFinishLine } from 'react-icons/gi';
 import { PiStudent } from 'react-icons/pi';
 
+import { ExtendedPosition } from '@/data/positions';
+
 import { ADMIN_SIDEBAR } from './admin';
 import { COMMERCIAL_DIRECTOR_SIDEBAR } from './dirco';
 import { SECRETARY_GENERAL_SIDEBAR } from './secge';
 import { MRI_ICON, TRESO_ICON } from './tabs';
 import { TREASURER_SIDEBAR } from './treasurer';
-import { SideBarGroup } from './types';
+import { RoleSideBar, SideBarGroup } from './types';
 import { VPO_SIDEBAR } from './vpo';
 
-export const ROLES_SIDEBARS = {
+export const ROLES_SIDEBARS: Partial<Record<ExtendedPosition, RoleSideBar>> = {
     treasurer: TREASURER_SIDEBAR,
     operational_vice_president: VPO_SIDEBAR,
     general_secretary: SECRETARY_GENERAL_SIDEBAR,
     commercial_director: COMMERCIAL_DIRECTOR_SIDEBAR,
     info: ADMIN_SIDEBAR,
     admin: ADMIN_SIDEBAR,
-} as const;
+};
 
 export const CDP_SIDEBAR: SideBarGroup[] = [
     {

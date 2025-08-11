@@ -11,6 +11,7 @@ const positions = [
     'vice_treasurer',
     'general_secretary',
     'commercial_director',
+    'info',
 ] as const;
 
 export type Position = (typeof positions)[number];
@@ -25,6 +26,8 @@ const executivePositions: Position[] = [
     'general_secretary',
     'commercial_director',
 ];
+
+export type ExtendedPosition = Position | 'admin';
 
 // export type ExecutivePosition = (typeof executivePositions)[number];
 
