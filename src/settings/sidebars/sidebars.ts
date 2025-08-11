@@ -12,14 +12,14 @@ import { TREASURER_SIDEBAR } from './treasurer';
 import { RoleSideBar, SideBarGroup } from './types';
 import { VPO_SIDEBAR } from './vpo';
 
-export const ROLES_SIDEBARS: Partial<Record<ExtendedPosition, RoleSideBar>> = {
+export const ROLES_SIDEBARS = {
     treasurer: TREASURER_SIDEBAR,
     operational_vice_president: VPO_SIDEBAR,
     general_secretary: SECRETARY_GENERAL_SIDEBAR,
     commercial_director: COMMERCIAL_DIRECTOR_SIDEBAR,
     info: ADMIN_SIDEBAR,
     admin: ADMIN_SIDEBAR,
-};
+} satisfies Partial<Record<ExtendedPosition, RoleSideBar>>;
 
 export const CDP_SIDEBAR: SideBarGroup[] = [
     {
