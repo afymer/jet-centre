@@ -25,7 +25,8 @@ export const getViewer = async (): Promise<ViewerResult> => {
             type: ViewerResultErrorType.InvalidSession,
             message: 'Got null session while trying to get viewer',
         };
-    if (!isValidPosition(session.user.position))
+    const position = session.user.position;
+    if (!isValidPosition(position))
         return {
             status: 'error',
             type: ViewerResultErrorType.InvalidPosition,
@@ -35,7 +36,7 @@ export const getViewer = async (): Promise<ViewerResult> => {
         status: 'success',
         viewer: {
             ...session,
-            position: session.user.position as Position, // Already checked
+            position,
         },
     };
 };
