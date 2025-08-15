@@ -134,7 +134,7 @@ function MRICardFull({ mri }: { mri: PublicMRI }) {
     );
 }
 
-export function ZoomableMRICard({ mri }: { mri: PublicMRI }) {
+function ZoomableMRICard({ mri }: { mri: PublicMRI }) {
     const [open, setOpen] = useState(false);
     const title = mri.mriTitle ?? 'No title';
 
