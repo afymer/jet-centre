@@ -17,11 +17,6 @@ export type PublicMRI = {
     introductionText: string | null;
 };
 
-export type InfiniteScrollOptions = {
-    page: number;
-    pageSize: number;
-};
-
 export async function getPublicMRIs(viewer: Viewer): Promise<PublicMRI[]> {
     return (
         await prisma.mri.findMany({
