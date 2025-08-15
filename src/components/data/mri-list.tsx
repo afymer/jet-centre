@@ -1,19 +1,19 @@
 'use client';
 
 import { Domain, Level, MriStatus } from '@prisma/client';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { FaQuestion } from 'react-icons/fa6';
+import useSWR from 'swr';
 
 import { Button } from '@/components/ui/button';
 import { PublicMRI } from '@/data/mri';
 import { cn } from '@/lib/utils';
 
 import { Badge } from '../ui/badge';
-import useSWR from 'swr';
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Spinner } from '../ui/shadcn-io/spinner';
-import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from '../ui/dialog';
-import { createPortal } from 'react-dom';
-import { AnimatePresence, motion } from 'framer-motion';
 
 function MRIDifficultyLabel({ difficulty }: { difficulty: Level | null }) {
     const style: {
