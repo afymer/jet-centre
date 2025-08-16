@@ -1,104 +1,17 @@
 'use client';
 
-import { Domain, Level, MriStatus } from '@prisma/client';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { FaQuestion } from 'react-icons/fa6';
 import useSWR from 'swr';
 
 import { Button } from '@/components/ui/button';
 import { PublicMRI } from '@/data/mri';
-import { cn } from '@/lib/utils';
 
-import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Spinner } from '../ui/shadcn-io/spinner';
 
-function MRIDifficultyLabel({ difficulty }: { difficulty: Level | null }) {
-    const style: {
-        variant: 'secondary' | 'outline';
-        className: string;
-        label: string;
-    } = {
-        variant: 'secondary',
-        className: '',
-        label: 'inconnu',
-    };
-    switch (difficulty) {
-        case 'High':
-            style.className = 'bg-red-500 hover:bg-red-500/80';
-            style.label = 'Difficile';
-            break;
-        case 'Medium':
-            style.className = 'bg-orange-500 hover:bg-orange-500/80';
-            style.label = 'Moyen';
-            break;
-        case 'Low':
-            style.className = 'bg-green-500 hover:bg-green-500/80';
-            style.label = 'Facile';
-            break;
-        default:
-            style.variant = 'outline';
-            style.label = 'Difficulté inconnue';
-            break;
-    }
-    return (
-        <Badge variant={style.variant} className={style.className}>
-            {style.label}
-        </Badge>
-    );
-}
-
-function MRIDomainLabel({ domain }: { domain: Domain | null }) {
-    const style = {
-        variant: 'secondary' as const,
-        className: 'bg-blue-500 hover:bg-blue-500/80',
-        label: domain === null ? 'Domaine inconnu' : (domain as string),
-    };
-    return (
-        <Badge variant={style.variant} className={cn('space-x-2', style.className)}>
-            <FaQuestion />
-            <div>{style.label}</div>
-        </Badge>
-    );
-}
-
-function MRIStatusLabel({ status }: { status: MriStatus }) {
-    const style = {
-        variant: 'secondary' as const,
-        className: '',
-        label: 'Inconnu',
-    };
-    switch (status) {
-        case 'InProgress':
-            style.className = 'bg-gray-500 hover:bg-gray-500/80';
-            style.label = 'En rédaction';
-            break;
-        case 'Finished':
-            style.className = 'bg-yellow-500 hover:bg-yellow-500/80';
-            style.label = 'Terminé';
-            break;
-        case 'Validated':
-            style.className = 'bg-green-500 hover:bg-green-500/80';
-            style.label = 'Validé';
-            break;
-        case 'Sent':
-            style.className = 'bg-green-500 hover:bg-green-500/80';
-            style.label = 'Envoyé';
-            break;
-        case 'Expired':
-            style.className = 'bg-red-500 hover:bg-red-500/80';
-            style.label = 'Expiré';
-            break;
-    }
-    return (
-        <Badge variant={style.variant} className={cn('space-x-2', style.className)}>
-            <FaQuestion />
-            <div>{style.label}</div>
-        </Badge>
-    );
-}
+import { MRIDifficultyLabel, MRIDomainLabel, MRIStatusLabel } from './mri-utils';
 
 function MRICardPreview({ mri }: { mri: PublicMRI }) {
     const title = mri.mriTitle ?? 'No title';
