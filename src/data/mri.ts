@@ -1,6 +1,6 @@
 'use server';
 
-import { Domain, Level, Mri, MriStatus } from '@prisma/client';
+import { Domain, Level, Mri, MriStatus, Prisma } from '@prisma/client';
 
 import prisma from '@/db';
 
@@ -23,6 +23,17 @@ export type StudyMRIListItem = {
     mriTitle: string | null;
     mriStatus: MriStatus;
 };
+
+export type MriWithStudyAndAssignees = Prisma.MriGetPayload<{
+    include: {
+        study: {
+            include: {
+                cdps: true;
+                information: true;
+            };
+        };
+    };
+}>;
 
 export async function getPublicMRIs(viewer: Viewer): Promise<PublicMRI[]> {
     return (
@@ -144,11 +155,15 @@ export async function getStudyMRIsFromCode(
     ).map(getStudyMRIListItemFromMri);
 }
 
-export async function getMRIFromId(viewer: Viewer, mriId: string): Promise<Mri | null> {
+export async function getMRIFromId(
+    viewer: Viewer,
+    mriId: string
+): Promise<MriWithStudyAndAssignees | null> {
     return await prisma.mri.findFirst({
         include: {
             study: {
                 include: {
+                    cdps: true,
                     information: true,
                 },
             },
@@ -261,6 +276,49 @@ async function createEmptyMRI(viewer: Viewer, studyCode: string): Promise<Mri> {
                 },
             },
             title: DEFAULT_MRI_VALUES.title,
+        },
+    });
+}
+
+export async function setMRITitle(viewer: Viewer, mriId: string, title: string) {
+    await prisma.mri.updateMany({
+        where: {
+            AND: [
+                { id: mriId },
+                {
+                    OR: [
+                        {
+                            // If the study is not confidential
+                            study: {
+                                information: {
+                                    confidential: false,
+                                },
+                            },
+                        },
+                        {
+                            // If the user is a member of the executive board
+                            study: {
+                                information: {
+                                    confidential: isExecutiveBoard(viewer),
+                                },
+                            },
+                        },
+                        {
+                            // If the user is a CDP on the study
+                            study: {
+                                cdps: {
+                                    some: {
+                                        userId: viewer.id,
+                                    },
+                                },
+                            },
+                        },
+                    ],
+                },
+            ],
+        },
+        data: {
+            title,
         },
     });
 }

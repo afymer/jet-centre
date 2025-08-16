@@ -1,8 +1,8 @@
 'use client';
 
-import { Mri } from '@prisma/client';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useCallback, useState } from 'react';
 import {
     FaEnvelope,
     FaFacebook,
@@ -11,12 +11,15 @@ import {
     FaLinkedin,
     FaXTwitter,
 } from 'react-icons/fa6';
-import useSWR from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 
 import BirdLogo from '@/../public/mri/bird.png';
 
 import { getDifficulty, getDomain, getPay, ImageElt } from '@/app/(user)/cdp/[study]/mri/figures';
 import { Skeleton } from '@/components/ui/skeleton';
+import { MriWithStudyAndAssignees, setMRITitle, StudyMRIListItem } from '@/data/mri';
+import { getViewer } from '@/data/user';
+import { useDebounceCallback } from '@/hooks/use-debounce-callback';
 import {
     CONTACT_EMAIL,
     FACEBOOK_URL,
@@ -27,18 +30,70 @@ import {
 } from '@/settings/links';
 
 import { Button } from '../ui/button';
+import { Input } from '../ui/input';
 
-const fetcher = (url: string, mriId: string): Promise<Mri> =>
+const fetcher = (url: string, mriId: string): Promise<MriWithStudyAndAssignees> =>
     fetch(url + mriId).then((r) => r.json());
+
+export default function EditableText({
+    initText,
+    updateText,
+}: {
+    initText: string;
+    updateText: (text: string) => void;
+}) {
+    const [text, setText] = useState(initText);
+
+    const handleInput = useCallback(
+        (value: string) => {
+            console.log('callback called', value);
+            updateText(value);
+        },
+        [updateText]
+    );
+
+    const debouncedHandleInput = useDebounceCallback(handleInput, 1000);
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setText(value);
+        debouncedHandleInput(value);
+    };
+
+    return (
+        <div className="w-full max-w-sm">
+            {/* {isEditing ? ( */}
+            <Input
+                value={text}
+                onChange={handleInputChange}
+                style={{
+                    fontSize: 'inherit',
+                }}
+                className="font-inherit border-none bg-inherit focus-visible:ring-0 focus-visible:ring-offset-0"
+            />
+            {/* ) : (
+                <span
+                    className="text-xl font-semibold cursor-text hover:opacity-80"
+                    onClick={() => setIsEditing(true)}
+                >
+                    {value}
+                </span>
+            )} */}
+        </div>
+    );
+}
 
 export function MRIRenderEditor({ mriId }: { mriId: string }) {
     const {
         data: mri,
         isLoading,
         isValidating,
+        mutate,
     } = useSWR(['/api/mri/', mriId], ([url, mriId]) => fetcher(url, mriId), {
         revalidateOnFocus: false,
     });
+
+    const { mutate: globalMutate } = useSWRConfig();
 
     if (!isLoading && !isValidating && mri === undefined) {
         return <div>Impossible d&apos;accéder au MRI</div>;
@@ -47,6 +102,39 @@ export function MRIRenderEditor({ mriId }: { mriId: string }) {
     const titleLoading = isLoading || mri === undefined || mri.title === null;
 
     const h4cn = 'text-2xl font-bold my-1 text-mri-headers';
+
+    const updateTitle = async (text: string) => {
+        if (mri === undefined || mri.id === undefined) return;
+        const viewerResult = await getViewer();
+        if (viewerResult.status == 'error') {
+            return;
+        }
+        mutate((data) => {
+            if (data === undefined) return;
+            return { ...data, title: text };
+        });
+
+        setMRITitle(viewerResult.viewer, mri.id, text);
+        globalMutate(
+            ['/api/mri/study/', mri.study.information.code],
+            (currentMris?: StudyMRIListItem[]) => {
+                if (!currentMris) return currentMris;
+                return currentMris.map((mriItem) =>
+                    mriItem.id === mri.id ? { ...mriItem, mriTitle: text } : mriItem
+                );
+            },
+            { revalidate: false }
+        );
+
+        /*
+        {
+            optimisticData: (mris: StudyMRIListItem[]) =>
+                mris.map((mriItem: StudyMRIListItem) =>
+                    mriItem.id == mri.id ? { ...mriItem, mriTitle: text } : mriItem
+                ),
+        }
+        */
+    };
 
     return (
         <div className="@container w-full h-full bg-white text-black">
@@ -61,8 +149,9 @@ export function MRIRenderEditor({ mriId }: { mriId: string }) {
                     />
                     <h3 className="text-center text-3xl font-bold text-mri-title my-6">
                         {!titleLoading ? (
-                            <div>{mri.title}</div>
+                            <EditableText initText={mri.title ?? ''} updateText={updateTitle} />
                         ) : (
+                            // <div>{mri.title}</div>
                             <Skeleton className="h-[2.25rem] w-[160px]" />
                         )}
                     </h3>
