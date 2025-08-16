@@ -20,7 +20,6 @@ import { MRIStatusColor, MRIStatusText } from './mri-utils';
 
 function MRIListItemStatus({ status }: { status: MriStatus }) {
     const color = MRIStatusColor(status);
-    console.log('text-' + color);
 
     return (
         <div className={cn('text-' + color, 'flex gap-2 place-items-center')}>
