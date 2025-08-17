@@ -323,6 +323,53 @@ export async function setMRITitle(viewer: Viewer, mriId: string, title: string) 
     });
 }
 
+export async function setMRIIntroductionText(
+    viewer: Viewer,
+    mriId: string,
+    introductionText: string
+) {
+    await prisma.mri.updateMany({
+        where: {
+            AND: [
+                { id: mriId },
+                {
+                    OR: [
+                        {
+                            // If the study is not confidential
+                            study: {
+                                information: {
+                                    confidential: false,
+                                },
+                            },
+                        },
+                        {
+                            // If the user is a member of the executive board
+                            study: {
+                                information: {
+                                    confidential: isExecutiveBoard(viewer),
+                                },
+                            },
+                        },
+                        {
+                            // If the user is a CDP on the study
+                            study: {
+                                cdps: {
+                                    some: {
+                                        userId: viewer.id,
+                                    },
+                                },
+                            },
+                        },
+                    ],
+                },
+            ],
+        },
+        data: {
+            introductionText,
+        },
+    });
+}
+
 export async function createEmptyStudyMRI(
     viewer: Viewer,
     studyCode: string
