@@ -44,7 +44,9 @@ function MRIListItem({
             onClick={select}
             className="w-full flex justify-between"
         >
-            <div>{mri.mriTitle}</div>
+            <div className="text-left w-[60%] overflow-hidden bg-clip-text text-transparent bg-gradient-to-r from-foreground from-80% to-transparent">
+                {mri.mriTitle}
+            </div>
             <MRIListItemStatus status={mri.mriStatus} />
         </Button>
     );
@@ -161,8 +163,10 @@ export default function MRIEditor({
 
             <Separator orientation="vertical" className="h-auto w-[2px]" />
 
-            {selectedMri !== null && <MRIRenderEditor mriId={selectedMri} />}
-            {selectedMri === null && <div>Sélectionnez un MRI</div>}
+            <div className="w-full flex flex-col h-full">
+                {selectedMri !== null && <MRIRenderEditor mriId={selectedMri} />}
+                {selectedMri === null && <div>Sélectionnez un MRI</div>}
+            </div>
         </div>
     );
 }
