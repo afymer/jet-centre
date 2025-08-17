@@ -12,6 +12,7 @@ import {
     FaXTwitter,
 } from 'react-icons/fa6';
 import useSWR, { useSWRConfig } from 'swr';
+import { useDebouncedCallback } from 'use-debounce';
 
 import BirdLogo from '@/../public/mri/bird.png';
 
@@ -19,7 +20,6 @@ import { getDifficulty, getDomain, getPay, ImageElt } from '@/app/(user)/cdp/[st
 import { Skeleton } from '@/components/ui/skeleton';
 import { MriWithStudyAndAssignees, setMRITitle, StudyMRIListItem } from '@/data/mri';
 import { getViewer } from '@/data/user';
-import { useDebounceCallback } from '@/hooks/use-debounce-callback';
 import {
     CONTACT_EMAIL,
     FACEBOOK_URL,
@@ -52,7 +52,7 @@ export default function EditableText({
         [updateText]
     );
 
-    const debouncedHandleInput = useDebounceCallback(handleInput, 1000);
+    const debouncedHandleInput = useDebouncedCallback(handleInput, 600);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
