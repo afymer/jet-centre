@@ -88,7 +88,11 @@ export async function getPublicMRIs(viewer: Viewer): Promise<PublicMRI[]> {
     });
 }
 
-function getStudyMRIListItemFromMri(mri: Mri): StudyMRIListItem {
+function getStudyMRIListItemFromMri(mri: {
+    id: Mri['id'];
+    status: Mri['status'];
+    title: Mri['title'];
+}): StudyMRIListItem {
     return {
         id: mri.id,
         mriStatus: mri.status,
@@ -100,15 +104,10 @@ export async function getStudyMRIsFromCode(
     viewer: Viewer,
     studyCode: string
 ): Promise<StudyMRIListItem[]> {
+    const isExec = isExecutiveBoard(viewer);
+
     return (
         await prisma.mri.findMany({
-            include: {
-                study: {
-                    include: {
-                        information: true,
-                    },
-                },
-            },
             where: {
                 AND: [
                     {
@@ -132,7 +131,7 @@ export async function getStudyMRIsFromCode(
                                 // If the user is a member of the executive board
                                 study: {
                                     information: {
-                                        confidential: isExecutiveBoard(viewer),
+                                        confidential: isExec,
                                     },
                                 },
                             },
@@ -149,6 +148,11 @@ export async function getStudyMRIsFromCode(
                         ],
                     },
                 ],
+            },
+            select: {
+                id: true,
+                status: true,
+                title: true,
             },
         })
     ).map(getStudyMRIListItemFromMri);
