@@ -1,41 +1,33 @@
 import { Domain, Level, MriStatus } from '@prisma/client';
+import { cva } from 'class-variance-authority';
 import { FaQuestion } from 'react-icons/fa6';
 
+import { DOMAINS, LEVELS } from '@/db/types';
+import { MRIStatusColor, MRIStatusText } from '@/lib/mri';
 import { cn } from '@/lib/utils';
 
 import { Badge } from '../ui/badge';
 
 export function MRIDifficultyLabel({ difficulty }: { difficulty: Level | null }) {
-    const style: {
-        variant: 'secondary' | 'outline';
-        className: string;
-        label: string;
-    } = {
-        variant: 'secondary',
-        className: '',
-        label: 'inconnu',
-    };
-    switch (difficulty) {
-        case 'High':
-            style.className = 'bg-red-500 hover:bg-red-500/80';
-            style.label = 'Difficile';
-            break;
-        case 'Medium':
-            style.className = 'bg-orange-500 hover:bg-orange-500/80';
-            style.label = 'Moyen';
-            break;
-        case 'Low':
-            style.className = 'bg-green-500 hover:bg-green-500/80';
-            style.label = 'Facile';
-            break;
-        default:
-            style.variant = 'outline';
-            style.label = 'Difficulté inconnue';
-            break;
-    }
+    const badgeVariants = cva('', {
+        variants: {
+            variant: {
+                High: 'bg-red-500 hover:bg-red-500/80',
+                Medium: 'bg-orange-500 hover:bg-orange-500/80',
+                Low: 'bg-green-500 hover:bg-green-500/80',
+            },
+        },
+        defaultVariants: {
+            variant: 'Low',
+        },
+    });
+
     return (
-        <Badge variant={style.variant} className={style.className}>
-            {style.label}
+        <Badge
+            variant={difficulty === null ? 'outline' : 'secondary'}
+            className={badgeVariants({ variant: difficulty })}
+        >
+            {difficulty === null ? 'Difficulté inconnue' : LEVELS[difficulty].display}
         </Badge>
     );
 }
@@ -44,7 +36,7 @@ export function MRIDomainLabel({ domain }: { domain: Domain | null }) {
     const style = {
         variant: 'secondary' as const,
         className: 'bg-blue-500 hover:bg-blue-500/80',
-        label: domain === null ? 'Domaine inconnu' : (domain as string),
+        label: domain === null ? 'Domaine inconnu' : DOMAINS[domain].display,
     };
     return (
         <Badge variant={style.variant} className={cn('space-x-2', style.className)}>
@@ -52,28 +44,6 @@ export function MRIDomainLabel({ domain }: { domain: Domain | null }) {
             <div>{style.label}</div>
         </Badge>
     );
-}
-
-export function MRIStatusColor(status: MriStatus): string {
-    const data: Record<MriStatus, string> = {
-        Expired: 'red-500',
-        Finished: 'yellow-500',
-        InProgress: 'gray-500',
-        Sent: 'green-500',
-        Validated: 'green-500',
-    };
-    return data[status];
-}
-
-export function MRIStatusText(status: MriStatus): string {
-    const data: Record<MriStatus, string> = {
-        InProgress: 'En rédaction',
-        Finished: 'Terminé',
-        Validated: 'Validé',
-        Sent: 'Envoyé',
-        Expired: 'Expiré',
-    };
-    return data[status];
 }
 
 export function MRIStatusLabel({ status }: { status: MriStatus }) {
