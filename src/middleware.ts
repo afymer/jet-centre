@@ -15,7 +15,6 @@ import type { NextRequest } from 'next/server';
 import type { Session } from 'next-auth';
 
 import { auth } from './actions/auth';
-import { redis } from './db';
 import { log } from './lib/utils';
 import { isAuthorisedToRoute, isNonAuthPublicRoute, ROUTES } from './routes';
 import { ROLES_SIDEBARS } from './settings/sidebars/sidebars';
@@ -44,22 +43,6 @@ function redirect(url: string, request: NextAuthRequest): NextResponse {
  * */
 function rewrite(url: string, request: NextAuthRequest): NextResponse {
     return NextResponse.rewrite(new URL(url, request.nextUrl));
-}
-
-/**
- * Handles the logic for redis in the middleware
- */
-async function redisMiddleware() {
-    return;
-    if (!process.env.NO_CACHE) {
-        const res = await redis?.get('test');
-        console.log('redis returned', res);
-        if (res === null) {
-            redis?.set('test', 0);
-        } else {
-            redis?.incr('test');
-        }
-    }
 }
 
 /**
@@ -104,8 +87,6 @@ export default auth(async (request: NextAuthRequest) => {
     const position = session?.user?.position;
     const { pathname } = request.nextUrl;
     log(`middleware at ${pathname} [loggedIn=${isLoggedIn}] [pos=${position}] `);
-
-    redisMiddleware();
 
     if (process.env.DEV_MODE) return NextResponse.next();
 
