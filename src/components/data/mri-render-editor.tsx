@@ -41,7 +41,6 @@ import {
 
 import { Button } from '../ui/button';
 import { Spinner } from '../ui/shadcn-io/spinner';
-// import { Input } from '../ui/input';
 
 const fetcher = (url: string, mriId: string): Promise<MriWithStudyAndAssignees> =>
     fetch(url + mriId).then((r) => r.json());
@@ -281,18 +280,6 @@ export function MRIRenderEditor({ mriId }: { mriId: string }) {
                                     N&apos;hésitez pas à nous contacter pour plus
                                     d&apos;information:
                                 </p>
-                                <div className="flex">
-                                    {/* {admins.map((admin, i) => (
-                                <Link
-                                    href={'mailto' + admin.email}
-                                    className="text-sm p-2 flex underline flex-col items-center"
-                                    key={i}
-                                >
-                                    <p>{admin.firstName + ' ' + admin.lastName}</p>
-                                    <p>{admin.email}</p>
-                                </Link>
-                            ))} */}
-                                </div>
                             </div>
 
                             <p>À bientôt,</p>
