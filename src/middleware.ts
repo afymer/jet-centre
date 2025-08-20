@@ -104,7 +104,6 @@ export default auth(async (request: NextAuthRequest) => {
  * The middleware will solely be applied to URLs that match this patterns.
  */
 export const config = {
-    runtime: 'nodejs',
     matcher: [
         /*
          * Match all request paths except for the ones starting with:
