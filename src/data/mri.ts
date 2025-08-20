@@ -4,7 +4,6 @@ import { Domain, Level, Mri, MriStatus, Prisma } from '@prisma/client';
 
 import prisma from '@/db';
 
-import { DEFAULT_MRI_VALUES } from './mri-defaults';
 import { isExecutiveBoard } from './positions';
 import { Viewer } from './user';
 
@@ -275,7 +274,11 @@ async function createEmptyMRI(viewer: Viewer, studyCode: string): Promise<Mri> {
                     id: study.id,
                 },
             },
-            title: DEFAULT_MRI_VALUES.title,
+            lastEditedAction: {
+                create: {
+                    userId: viewer.id,
+                },
+            },
         },
     });
 }
