@@ -23,6 +23,21 @@ export type StudyMRIListItem = {
     mriStatus: MriStatus;
 };
 
+type ClassicLastActionPayload = {
+    include: {
+        user: {
+            include: {
+                person: {
+                    select: {
+                        firstName: true;
+                        lastName: true;
+                    };
+                };
+            };
+        };
+    };
+};
+
 export type MriWithStudyAndAssignees = Prisma.MriGetPayload<{
     include: {
         study: {
@@ -31,6 +46,7 @@ export type MriWithStudyAndAssignees = Prisma.MriGetPayload<{
                 information: true;
             };
         };
+        lastEditedAction: ClassicLastActionPayload;
     };
 }>;
 
@@ -168,6 +184,20 @@ export async function getMRIFromId(
                 include: {
                     cdps: true,
                     information: true,
+                },
+            },
+            lastEditedAction: {
+                include: {
+                    user: {
+                        include: {
+                            person: {
+                                select: {
+                                    firstName: true,
+                                    lastName: true,
+                                },
+                            },
+                        },
+                    },
                 },
             },
         },
