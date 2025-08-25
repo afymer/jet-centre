@@ -1,4 +1,4 @@
-import { MriStatus } from "@prisma/client";
+import { MriStatus } from '@prisma/client';
 
 export function MRIStatusColor(status: MriStatus): string {
     const data: Record<MriStatus, string> = {
