@@ -2,7 +2,7 @@
 
 import { LogOut } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import { signOut } from "next-auth/react"
+import { signOut } from 'next-auth/react';
 
 import {
     DropdownMenu,
@@ -58,9 +58,7 @@ export const UserDropdownMenu = ({ isMobile, isOpen }: UserDropdownMenuProps) =>
                             className="space-x-2 cursor-pointer focus:text-primary-foreground"
                             asChild
                         >
-                            <Button
-                                onClick={() => signOut()}
-                            >
+                            <Button onClick={() => signOut()}>
                                 <LogOut />
                                 <div>Log out</div>
                             </Button>
