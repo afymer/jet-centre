@@ -171,8 +171,12 @@ export function MRIRenderEditor({ mriId }: { mriId: string }) {
             <div className="flex justify-between text-sm p-0.5">
                 {mri ? (
                     <div className="italic">
-                        Dernière édition par {'X'}{' '}
-                        {formatDistanceToNow(mri?.lastEdited, { addSuffix: true, locale: fr })}
+                        Dernière édition par {mri?.lastEditedAction.user.person.firstName}{' '}
+                        {mri?.lastEditedAction.user.person.lastName}{' '}
+                        {formatDistanceToNow(mri?.lastEditedAction.date, {
+                            addSuffix: true,
+                            locale: fr,
+                        })}
                     </div>
                 ) : (
                     <div>Invalid MRI</div>
