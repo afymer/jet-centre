@@ -34,13 +34,13 @@ export const getViewer = async (): Promise<ViewerResult> => {
             message: `position ${session.user.position} is invalid`,
         };
     const user = session.user;
-    // if (user.id === undefined) {
-    //     return {
-    //         status: 'error',
-    //         type: ViewerResultErrorType.InvalidUser,
-    //         message: `user (id: ${user.id}, email: ${user.email}) is invalid`,
-    //     };
-    // }
+    if (user.id === undefined) {
+        return {
+            status: 'error',
+            type: ViewerResultErrorType.InvalidUser,
+            message: `user (id: ${user.id}, email: ${user.email}) is invalid`,
+        };
+    }
     return {
         status: 'success',
         viewer: {
