@@ -16,8 +16,6 @@ import { getViewer } from '@/data/user';
 import { MRIStatusColor, MRIStatusText } from '@/lib/mri';
 import { cn } from '@/lib/utils';
 
-
-
 function MRIListItemStatus({ status }: { status: MriStatus }) {
     const color = MRIStatusColor(status);
 

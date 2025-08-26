@@ -104,7 +104,7 @@ export async function createNewMri(studyCode: string): Promise<MriServerData | u
                 study: {
                     connect: { id: study.id },
                 },
-                lastEditedAction: {}
+                lastEditedAction: {},
             },
         });
         return {
