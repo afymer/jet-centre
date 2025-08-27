@@ -28,8 +28,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
     ClassicLastActionPayload,
     MriWithStudyAndAssignees,
+    setMRIDescriptionText,
     setMRIIntroductionText,
     setMRIRequiredSkillsText,
+    setMRITimeLapsText,
     setMRITitle,
     StudyMRIListItem,
 } from '@/data/mri';
@@ -138,6 +140,8 @@ export function MRIRenderEditor({ mriId }: { mriId: string }) {
     const titleLoading = isLoading || mri === undefined || mri === null;
     const introductionLoading = isLoading || mri === undefined || mri === null;
     const requiredSkillsLoading = isLoading || mri === undefined || mri === null;
+    const timeLapsTextLoading = isLoading || mri === undefined || mri === null;
+    const descriptionTextLoading = isLoading || mri === undefined || mri === null;
 
     const h4cn = 'text-2xl font-bold my-1 text-mri-headers';
 
@@ -294,6 +298,97 @@ export function MRIRenderEditor({ mriId }: { mriId: string }) {
         );
     };
 
+    const updateTimeLapsText = async (text: string) => {
+        if (!mri?.id) return;
+
+        if (viewerResult.status === 'error') return;
+
+        const now = new Date();
+        const updatedAction: Prisma.ActionGetPayload<ClassicLastActionPayload> = {
+            ...mri.lastEditedAction,
+            date: now,
+            user: {
+                id: viewerResult.viewer.id,
+                person: {
+                    firstName: viewerResult.viewer.firstName,
+                    lastName: viewerResult.viewer.lastName,
+                },
+            },
+        };
+
+        // Update locally immediately
+        // It is REALLY important to not revalidate here
+        mutate(
+            async () => {
+                await setMRITimeLapsText(viewerResult.viewer, mriId, text);
+                // Here I don't think returning the updated data via the server action makes sense...
+                // The best option would be to use a web socket anyways :)
+                return {
+                    ...mri,
+                    timeLapsText: text,
+                    lastEditedAction: updatedAction,
+                };
+            },
+            {
+                optimisticData: {
+                    ...mri,
+                    timeLapsText: text,
+                    lastEditedAction: updatedAction,
+                },
+                rollbackOnError: true,
+                revalidate: false,
+            }
+        );
+    };
+
+    const updatedescriptionText = async (text: string) => {
+        if (!mri?.id) return;
+
+        if (viewerResult.status === 'error') return;
+
+        const now = new Date();
+        const updatedAction: Prisma.ActionGetPayload<ClassicLastActionPayload> = {
+            ...mri.lastEditedAction,
+            date: now,
+            user: {
+                id: viewerResult.viewer.id,
+                person: {
+                    firstName: viewerResult.viewer.firstName,
+                    lastName: viewerResult.viewer.lastName,
+                },
+            },
+        };
+
+        // Update locally immediately
+        // It is REALLY important to not revalidate here
+        try {
+            mutate(
+                async () => {
+                    await setMRIDescriptionText(viewerResult.viewer, mriId, text);
+                    // Here I don't think returning the updated data via the server action makes sense...
+                    // The best option would be to use a web socket anyways :)
+                    return {
+                        ...mri,
+                        descriptionText: text,
+                        lastEditedAction: updatedAction,
+                    };
+                },
+                {
+                    optimisticData: {
+                        ...mri,
+                        descriptionText: text,
+                        lastEditedAction: updatedAction,
+                    },
+                    rollbackOnError: true,
+                    revalidate: false,
+                    throwOnError: true,
+                }
+            );
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
     return (
         <div className="flex flex-col h-full">
             <div className="flex justify-between text-sm p-0.5">
@@ -405,11 +500,35 @@ export function MRIRenderEditor({ mriId }: { mriId: string }) {
                             </section>
                             <section className="mb-5">
                                 <h4 className={h4cn}>Échéances</h4>
-                                <p>{mri?.timeLapsText}</p>
+                                {!timeLapsTextLoading ? (
+                                    <EditableText
+                                        initText={mri?.timeLapsText ?? ''}
+                                        updateText={updateTimeLapsText}
+                                        placeholder={DEFAULT_MRI_VALUES.timeLapsText}
+                                    />
+                                ) : (
+                                    <div className="flex flex-col gap-1">
+                                        <Skeleton className="h-[1.25rem] w-[160px]" />
+                                        <Skeleton className="h-[1.25rem] w-[260px]" />
+                                        <Skeleton className="h-[1.25rem] w-[200px]" />
+                                    </div>
+                                )}
                             </section>
                             <section className="mb-5">
                                 <h4 className={h4cn}>Description</h4>
-                                <p>{mri?.descriptionText}</p>
+                                {!descriptionTextLoading ? (
+                                    <EditableText
+                                        initText={mri?.descriptionText ?? ''}
+                                        updateText={updatedescriptionText}
+                                        placeholder={DEFAULT_MRI_VALUES.descriptionText}
+                                    />
+                                ) : (
+                                    <div className="flex flex-col gap-1">
+                                        <Skeleton className="h-[1.25rem] w-[160px]" />
+                                        <Skeleton className="h-[1.25rem] w-[260px]" />
+                                        <Skeleton className="h-[1.25rem] w-[200px]" />
+                                    </div>
+                                )}
                             </section>
                             <hr className="my-6 border-mri-separator" />
                             <div className="flex flex-col items-center">

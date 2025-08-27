@@ -530,6 +530,142 @@ export async function setMRIRequiredSkillsText(
     });
 }
 
+export async function setMRITimeLapsText(viewer: Viewer, mriId: string, timeLapsText: string) {
+    const ids = (
+        await prisma.mri.updateManyAndReturn({
+            where: {
+                AND: [
+                    { id: mriId },
+                    {
+                        OR: [
+                            {
+                                // If the study is not confidential
+                                study: {
+                                    information: {
+                                        confidential: false,
+                                    },
+                                },
+                            },
+                            {
+                                // If the user is a member of the executive board
+                                study: {
+                                    information: {
+                                        confidential: isExecutiveBoard(viewer),
+                                    },
+                                },
+                            },
+                            {
+                                // If the user is a CDP on the study
+                                study: {
+                                    cdps: {
+                                        some: {
+                                            userId: viewer.id,
+                                        },
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                ],
+            },
+            data: {
+                timeLapsText,
+            },
+            select: {
+                id: true,
+            },
+        })
+    ).map((el) => el.id);
+
+    const now = new Date();
+
+    await prisma.action.updateMany({
+        where: {
+            Mri: {
+                some: {
+                    id: {
+                        in: ids,
+                    },
+                },
+            },
+        },
+        data: {
+            userId: viewer.id,
+            date: now,
+        },
+    });
+}
+
+export async function setMRIDescriptionText(
+    viewer: Viewer,
+    mriId: string,
+    descriptionText: string
+) {
+    const ids = (
+        await prisma.mri.updateManyAndReturn({
+            where: {
+                AND: [
+                    { id: mriId },
+                    {
+                        OR: [
+                            {
+                                // If the study is not confidential
+                                study: {
+                                    information: {
+                                        confidential: false,
+                                    },
+                                },
+                            },
+                            {
+                                // If the user is a member of the executive board
+                                study: {
+                                    information: {
+                                        confidential: isExecutiveBoard(viewer),
+                                    },
+                                },
+                            },
+                            {
+                                // If the user is a CDP on the study
+                                study: {
+                                    cdps: {
+                                        some: {
+                                            userId: viewer.id,
+                                        },
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                ],
+            },
+            data: {
+                descriptionText,
+            },
+            select: {
+                id: true,
+            },
+        })
+    ).map((el) => el.id);
+
+    const now = new Date();
+
+    await prisma.action.updateMany({
+        where: {
+            Mri: {
+                some: {
+                    id: {
+                        in: ids,
+                    },
+                },
+            },
+        },
+        data: {
+            userId: viewer.id,
+            date: now,
+        },
+    });
+}
+
 export async function createEmptyStudyMRI(
     viewer: Viewer,
     studyCode: string
