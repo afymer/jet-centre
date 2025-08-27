@@ -1,5 +1,6 @@
 'use client';
 
+import { Prisma } from '@prisma/client';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Image from 'next/image';
@@ -15,20 +16,24 @@ import {
     FaXTwitter,
 } from 'react-icons/fa6';
 import TextareaAutosize from 'react-textarea-autosize';
+import { toast } from 'sonner';
 import useSWR, { useSWRConfig } from 'swr';
 import { useDebouncedCallback } from 'use-debounce';
 
 import BirdLogo from '@/../public/mri/bird.png';
 
 import { getDifficulty, getDomain, getPay, ImageElt } from '@/app/(user)/cdp/[study]/mri/figures';
+import { useViewer } from '@/components/hooks/use-viewer';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
+    ClassicLastActionPayload,
     MriWithStudyAndAssignees,
     setMRIIntroductionText,
+    setMRIRequiredSkillsText,
     setMRITitle,
     StudyMRIListItem,
 } from '@/data/mri';
-import { getViewer } from '@/data/user';
+import { DEFAULT_MRI_VALUES } from '@/data/mri-defaults';
 import { cn } from '@/lib/utils';
 import {
     CONTACT_EMAIL,
@@ -48,20 +53,21 @@ const fetcher = (url: string, mriId: string): Promise<MriWithStudyAndAssignees> 
 function EditableText({
     initText,
     updateText,
+    placeholder,
 }: {
     initText: string;
     updateText: (text: string) => void;
+    placeholder: string;
 }) {
     const [text, setText] = useState(initText);
     const [focused, setFocused] = useState(false);
 
     useEffect(() => {
         setText(initText);
-    }, [initText]);
+    }, [focused, initText]);
 
     const handleInput = useCallback(
         (value: string) => {
-            console.log('callback called', value);
             updateText(value);
         },
         [updateText]
@@ -75,6 +81,12 @@ function EditableText({
         debouncedHandleInput(value);
     };
 
+    const onBlur = () => {
+        debouncedHandleInput.cancel();
+        setFocused(false);
+        updateText(text);
+    };
+
     return (
         <div className="w-full">
             <TextareaAutosize
@@ -82,11 +94,26 @@ function EditableText({
                 onChange={handleInputChange}
                 className="resize-none w-full"
                 onFocus={() => setFocused(true)}
-                onBlur={() => setFocused(false)}
+                onBlur={onBlur}
+                placeholder={placeholder}
                 spellCheck={focused}
             />
         </div>
     );
+}
+
+function TimeAgo({ date }: { date: Date }) {
+    const [, setNow] = useState(new Date());
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setNow(new Date());
+        }, 30000); // 30s
+
+        return () => clearInterval(interval);
+    }, []);
+
+    return <>{formatDistanceToNow(date, { addSuffix: true, locale: fr })}</>;
 }
 
 export function MRIRenderEditor({ mriId }: { mriId: string }) {
@@ -102,13 +129,15 @@ export function MRIRenderEditor({ mriId }: { mriId: string }) {
 
     const { mutate: globalMutate } = useSWRConfig();
 
+    const viewerResult = useViewer();
+
     if (!isLoading && !isValidating && mri === undefined) {
         return <div>Impossible d&apos;accéder au MRI</div>;
     }
 
-    const titleLoading = isLoading || mri === undefined || mri === null || mri.title === null;
-    const introductionLoading =
-        isLoading || mri === undefined || mri === null || mri.introductionText === null;
+    const titleLoading = isLoading || mri === undefined || mri === null;
+    const introductionLoading = isLoading || mri === undefined || mri === null;
+    const requiredSkillsLoading = isLoading || mri === undefined || mri === null;
 
     const h4cn = 'text-2xl font-bold my-1 text-mri-headers';
 
@@ -119,50 +148,149 @@ export function MRIRenderEditor({ mriId }: { mriId: string }) {
     };
 
     const updateTitle = async (text: string) => {
-        if (mri === undefined || mri.id === undefined) return;
-        const viewerResult = await getViewer();
-        if (viewerResult.status == 'error') {
-            return;
-        }
-        mutate((data) => {
-            if (data === undefined) return;
-            return { ...data, title: text };
-        });
+        if (!mri?.id) return;
 
-        setMRITitle(viewerResult.viewer, mri.id, text);
-        globalMutate(
-            ['/api/mri/study/', mri.study.information.code],
-            (currentMris?: StudyMRIListItem[]) => {
-                if (!currentMris) return currentMris;
-                return currentMris.map((mriItem) =>
-                    mriItem.id === mri.id ? { ...mriItem, mriTitle: text } : mriItem
-                );
+        if (viewerResult.status === 'error') return;
+
+        const now = new Date();
+        const updatedAction: Prisma.ActionGetPayload<ClassicLastActionPayload> = {
+            ...mri.lastEditedAction,
+            date: now,
+            user: {
+                id: viewerResult.viewer.id,
+                person: {
+                    firstName: viewerResult.viewer.firstName,
+                    lastName: viewerResult.viewer.lastName,
+                },
             },
-            { revalidate: false }
+        };
+
+        // Update locally immediately
+        // It is REALLY important to not revalidate here
+        mutate(
+            async () => {
+                await setMRITitle(viewerResult.viewer, mriId, text);
+                // Here I don't think returning the updated data via the server action makes sense...
+                // The best option would be to use a web socket anyways :)
+                return {
+                    ...mri,
+                    title: text,
+                    lastEditedAction: updatedAction,
+                };
+            },
+            {
+                optimisticData: {
+                    ...mri,
+                    title: text,
+                    lastEditedAction: updatedAction,
+                },
+                rollbackOnError: true,
+                revalidate: false,
+            }
         );
+
+        try {
+            // The optimistic update here doesn't account for any error that might happen server-side
+            // If we wanted to account for them it would be better to use a custom server action that
+            // updated the title AND returns the modified list, as the second argument to globalMutate
+            globalMutate(
+                ['/api/mri/study/', mri.study.information.code],
+                (currentMris?: StudyMRIListItem[]) => {
+                    if (!currentMris) return [];
+                    return currentMris.map((mriItem) =>
+                        mriItem.id === mri.id ? { ...mriItem, mriTitle: text } : mriItem
+                    );
+                },
+                { revalidate: false }
+            );
+        } catch {
+            toast.error('Une erreur est survenue en mettant à jour le titre du MRI');
+        }
     };
 
     const updateIntroduction = async (text: string) => {
-        if (mri === undefined || mri.id === undefined) return;
-        const viewerResult = await getViewer();
-        if (viewerResult.status == 'error') {
-            return;
-        }
-        mutate((data) => {
-            if (data === undefined) return;
-            return { ...data, introductionText: text };
-        });
+        if (!mri?.id) return;
 
-        setMRIIntroductionText(viewerResult.viewer, mri.id, text);
-        globalMutate(
-            ['/api/mri/study/', mri.study.information.code],
-            (currentMris?: StudyMRIListItem[]) => {
-                if (!currentMris) return currentMris;
-                return currentMris.map((mriItem) =>
-                    mriItem.id === mri.id ? { ...mriItem, introductionText: text } : mriItem
-                );
+        if (viewerResult.status === 'error') return;
+
+        const now = new Date();
+        const updatedAction: Prisma.ActionGetPayload<ClassicLastActionPayload> = {
+            ...mri.lastEditedAction,
+            date: now,
+            user: {
+                id: viewerResult.viewer.id,
+                person: {
+                    firstName: viewerResult.viewer.firstName,
+                    lastName: viewerResult.viewer.lastName,
+                },
             },
-            { revalidate: false }
+        };
+
+        // Update locally immediately
+        // It is REALLY important to not revalidate here
+        mutate(
+            async () => {
+                await setMRIIntroductionText(viewerResult.viewer, mriId, text);
+                // Here I don't think returning the updated data via the server action makes sense...
+                // The best option would be to use a web socket anyways :)
+                return {
+                    ...mri,
+                    introductionText: text,
+                    lastEditedAction: updatedAction,
+                };
+            },
+            {
+                optimisticData: {
+                    ...mri,
+                    introductionText: text,
+                    lastEditedAction: updatedAction,
+                },
+                rollbackOnError: true,
+                revalidate: false,
+            }
+        );
+    };
+
+    const updateRequiredSkillsText = async (text: string) => {
+        if (!mri?.id) return;
+
+        if (viewerResult.status === 'error') return;
+
+        const now = new Date();
+        const updatedAction: Prisma.ActionGetPayload<ClassicLastActionPayload> = {
+            ...mri.lastEditedAction,
+            date: now,
+            user: {
+                id: viewerResult.viewer.id,
+                person: {
+                    firstName: viewerResult.viewer.firstName,
+                    lastName: viewerResult.viewer.lastName,
+                },
+            },
+        };
+
+        // Update locally immediately
+        // It is REALLY important to not revalidate here
+        mutate(
+            async () => {
+                await setMRIRequiredSkillsText(viewerResult.viewer, mriId, text);
+                // Here I don't think returning the updated data via the server action makes sense...
+                // The best option would be to use a web socket anyways :)
+                return {
+                    ...mri,
+                    requiredSkillsText: text,
+                    lastEditedAction: updatedAction,
+                };
+            },
+            {
+                optimisticData: {
+                    ...mri,
+                    requiredSkillsText: text,
+                    lastEditedAction: updatedAction,
+                },
+                rollbackOnError: true,
+                revalidate: false,
+            }
         );
     };
 
@@ -173,10 +301,7 @@ export function MRIRenderEditor({ mriId }: { mriId: string }) {
                     <div className="italic">
                         Dernière édition par {mri?.lastEditedAction.user.person.firstName}{' '}
                         {mri?.lastEditedAction.user.person.lastName}{' '}
-                        {formatDistanceToNow(mri?.lastEditedAction.date, {
-                            addSuffix: true,
-                            locale: fr,
-                        })}
+                        <TimeAgo date={new Date(mri.lastEditedAction.date)} />
                     </div>
                 ) : (
                     <div>Invalid MRI</div>
@@ -219,6 +344,7 @@ export function MRIRenderEditor({ mriId }: { mriId: string }) {
                                     <EditableText
                                         initText={mri.title ?? ''}
                                         updateText={updateTitle}
+                                        placeholder={DEFAULT_MRI_VALUES.title}
                                     />
                                 ) : (
                                     <Skeleton className="h-[2.25rem] w-[160px]" />
@@ -233,6 +359,7 @@ export function MRIRenderEditor({ mriId }: { mriId: string }) {
                                     <EditableText
                                         initText={mri?.introductionText ?? ''}
                                         updateText={updateIntroduction}
+                                        placeholder={DEFAULT_MRI_VALUES.introductionText}
                                     />
                                 ) : (
                                     <div className="flex flex-col gap-1">
@@ -262,7 +389,19 @@ export function MRIRenderEditor({ mriId }: { mriId: string }) {
                             <hr className="my-6 border-mri-separator" />
                             <section className="mb-5">
                                 <h4 className={h4cn}>Compétences</h4>
-                                <p>{mri?.requiredSkillsText}</p>
+                                {!requiredSkillsLoading ? (
+                                    <EditableText
+                                        initText={mri?.requiredSkillsText ?? ''}
+                                        updateText={updateRequiredSkillsText}
+                                        placeholder={DEFAULT_MRI_VALUES.requiredSkillsText}
+                                    />
+                                ) : (
+                                    <div className="flex flex-col gap-1">
+                                        <Skeleton className="h-[1.25rem] w-[160px]" />
+                                        <Skeleton className="h-[1.25rem] w-[260px]" />
+                                        <Skeleton className="h-[1.25rem] w-[200px]" />
+                                    </div>
+                                )}
                             </section>
                             <section className="mb-5">
                                 <h4 className={h4cn}>Échéances</h4>

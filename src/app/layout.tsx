@@ -10,6 +10,7 @@ import { get_user_sidebar_info } from '@/actions/cdp';
 import { SidebarApp } from '@/components/navigation/sidebar/sidebar-app';
 import { TopBar } from '@/components/navigation/topbar';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
+import { Toaster } from '@/components/ui/sonner';
 import { cn } from '@/lib/utils';
 
 /**
@@ -59,6 +60,7 @@ async function AdminSideBar({ children, session }: { children: ReactNode; sessio
     return (
         <SessionProvider>
             <SidebarProvider>
+                <Toaster richColors position="bottom-right" closeButton />
                 <SidebarApp userInfo={userInfo} />
                 <SidebarInset className="flex h-dvh w-full flex-col">
                     <header className="sticky top-0 flex w-full items-center gap-2 p-2 px-4 bg-background">

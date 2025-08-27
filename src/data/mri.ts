@@ -23,7 +23,7 @@ export type StudyMRIListItem = {
     mriStatus: MriStatus;
 };
 
-type ClassicLastActionPayload = {
+export type ClassicLastActionPayload = {
     include: {
         user: {
             include: {
@@ -33,6 +33,13 @@ type ClassicLastActionPayload = {
                         lastName: true;
                     };
                 };
+            };
+            select: {
+                id: true;
+            };
+            omit: {
+                personId: true;
+                userSettingsId: true;
             };
         };
     };
@@ -318,44 +325,67 @@ async function createEmptyMRI(viewer: Viewer, studyCode: string): Promise<Mri> {
 }
 
 export async function setMRITitle(viewer: Viewer, mriId: string, title: string) {
-    await prisma.mri.updateMany({
-        where: {
-            AND: [
-                { id: mriId },
-                {
-                    OR: [
-                        {
-                            // If the study is not confidential
-                            study: {
-                                information: {
-                                    confidential: false,
-                                },
-                            },
-                        },
-                        {
-                            // If the user is a member of the executive board
-                            study: {
-                                information: {
-                                    confidential: isExecutiveBoard(viewer),
-                                },
-                            },
-                        },
-                        {
-                            // If the user is a CDP on the study
-                            study: {
-                                cdps: {
-                                    some: {
-                                        userId: viewer.id,
+    const ids = (
+        await prisma.mri.updateManyAndReturn({
+            where: {
+                AND: [
+                    { id: mriId },
+                    {
+                        OR: [
+                            {
+                                // If the study is not confidential
+                                study: {
+                                    information: {
+                                        confidential: false,
                                     },
                                 },
                             },
-                        },
-                    ],
+                            {
+                                // If the user is a member of the executive board
+                                study: {
+                                    information: {
+                                        confidential: isExecutiveBoard(viewer),
+                                    },
+                                },
+                            },
+                            {
+                                // If the user is a CDP on the study
+                                study: {
+                                    cdps: {
+                                        some: {
+                                            userId: viewer.id,
+                                        },
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                ],
+            },
+            data: {
+                title,
+            },
+            select: {
+                id: true,
+            },
+        })
+    ).map((el) => el.id);
+
+    const now = new Date();
+
+    await prisma.action.updateMany({
+        where: {
+            Mri: {
+                some: {
+                    id: {
+                        in: ids,
+                    },
                 },
-            ],
+            },
         },
         data: {
-            title,
+            userId: viewer.id,
+            date: now,
         },
     });
 }
@@ -365,44 +395,137 @@ export async function setMRIIntroductionText(
     mriId: string,
     introductionText: string
 ) {
-    await prisma.mri.updateMany({
-        where: {
-            AND: [
-                { id: mriId },
-                {
-                    OR: [
-                        {
-                            // If the study is not confidential
-                            study: {
-                                information: {
-                                    confidential: false,
-                                },
-                            },
-                        },
-                        {
-                            // If the user is a member of the executive board
-                            study: {
-                                information: {
-                                    confidential: isExecutiveBoard(viewer),
-                                },
-                            },
-                        },
-                        {
-                            // If the user is a CDP on the study
-                            study: {
-                                cdps: {
-                                    some: {
-                                        userId: viewer.id,
+    const ids = (
+        await prisma.mri.updateManyAndReturn({
+            where: {
+                AND: [
+                    { id: mriId },
+                    {
+                        OR: [
+                            {
+                                // If the study is not confidential
+                                study: {
+                                    information: {
+                                        confidential: false,
                                     },
                                 },
                             },
-                        },
-                    ],
+                            {
+                                // If the user is a member of the executive board
+                                study: {
+                                    information: {
+                                        confidential: isExecutiveBoard(viewer),
+                                    },
+                                },
+                            },
+                            {
+                                // If the user is a CDP on the study
+                                study: {
+                                    cdps: {
+                                        some: {
+                                            userId: viewer.id,
+                                        },
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                ],
+            },
+            data: {
+                introductionText: introductionText,
+            },
+            select: {
+                id: true,
+            },
+        })
+    ).map((el) => el.id);
+
+    const now = new Date();
+
+    await prisma.action.updateMany({
+        where: {
+            Mri: {
+                some: {
+                    id: {
+                        in: ids,
+                    },
                 },
-            ],
+            },
         },
         data: {
-            introductionText,
+            userId: viewer.id,
+            date: now,
+        },
+    });
+}
+
+export async function setMRIRequiredSkillsText(
+    viewer: Viewer,
+    mriId: string,
+    requiredSkillsText: string
+) {
+    const ids = (
+        await prisma.mri.updateManyAndReturn({
+            where: {
+                AND: [
+                    { id: mriId },
+                    {
+                        OR: [
+                            {
+                                // If the study is not confidential
+                                study: {
+                                    information: {
+                                        confidential: false,
+                                    },
+                                },
+                            },
+                            {
+                                // If the user is a member of the executive board
+                                study: {
+                                    information: {
+                                        confidential: isExecutiveBoard(viewer),
+                                    },
+                                },
+                            },
+                            {
+                                // If the user is a CDP on the study
+                                study: {
+                                    cdps: {
+                                        some: {
+                                            userId: viewer.id,
+                                        },
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                ],
+            },
+            data: {
+                requiredSkillsText,
+            },
+            select: {
+                id: true,
+            },
+        })
+    ).map((el) => el.id);
+
+    const now = new Date();
+
+    await prisma.action.updateMany({
+        where: {
+            Mri: {
+                some: {
+                    id: {
+                        in: ids,
+                    },
+                },
+            },
+        },
+        data: {
+            userId: viewer.id,
+            date: now,
         },
     });
 }

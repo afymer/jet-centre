@@ -6,7 +6,12 @@ import { auth } from '@/actions/auth';
 
 import { isValidPosition, Position } from './positions';
 
-export type Viewer = Omit<User, 'id'> & { id: NonNullable<User['id']>; position?: Position };
+export type Viewer = Omit<User, 'id'> & {
+    id: NonNullable<User['id']>;
+    firstName: string;
+    lastName: string;
+    position?: Position;
+};
 
 enum ViewerResultErrorType {
     InvalidPosition,
@@ -14,7 +19,7 @@ enum ViewerResultErrorType {
     InvalidUser,
 }
 
-type ViewerResult =
+export type ViewerResult =
     | { status: 'success'; viewer: Viewer }
     | { status: 'error'; type: ViewerResultErrorType; message: string };
 
