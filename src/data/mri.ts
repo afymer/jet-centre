@@ -1,61 +1,18 @@
 'use server';
 
-import { Domain, Level, Mri, MriStatus, Prisma } from '@prisma/client';
+import { Mri, Prisma } from '@prisma/client';
 
 import prisma from '@/db';
+import {
+    MRIModifyFieldErrorCode,
+    MRIModifyFieldResult,
+    MriWithStudyAndAssignees,
+    PublicMRI,
+    StudyMRIListItem,
+} from '@/types/mri';
 
 import { isExecutiveBoard } from './positions';
 import { Viewer } from './user';
-
-export type PublicMRI = {
-    id: string;
-    studyTitle: string | null;
-    mriTitle: string | null;
-    mriDifficulty: Level | null;
-    mriMainDomain: Domain | null;
-    mriStatus: MriStatus;
-    introductionText: string | null;
-};
-
-export type StudyMRIListItem = {
-    id: string;
-    mriTitle: string | null;
-    mriStatus: MriStatus;
-};
-
-export type ClassicLastActionPayload = {
-    include: {
-        user: {
-            include: {
-                person: {
-                    select: {
-                        firstName: true;
-                        lastName: true;
-                    };
-                };
-            };
-            select: {
-                id: true;
-            };
-            omit: {
-                personId: true;
-                userSettingsId: true;
-            };
-        };
-    };
-};
-
-export type MriWithStudyAndAssignees = Prisma.MriGetPayload<{
-    include: {
-        study: {
-            include: {
-                cdps: true;
-                information: true;
-            };
-        };
-        lastEditedAction: ClassicLastActionPayload;
-    };
-}>;
 
 export async function getPublicMRIs(viewer: Viewer): Promise<PublicMRI[]> {
     return (
@@ -67,36 +24,7 @@ export async function getPublicMRIs(viewer: Viewer): Promise<PublicMRI[]> {
                     },
                 },
             },
-            where: {
-                OR: [
-                    {
-                        // If the study is not confidential
-                        study: {
-                            information: {
-                                confidential: false,
-                            },
-                        },
-                    },
-                    {
-                        // If the user is a member of the executive board
-                        study: {
-                            information: {
-                                confidential: isExecutiveBoard(viewer),
-                            },
-                        },
-                    },
-                    {
-                        // If the user is a CDP on the study
-                        study: {
-                            cdps: {
-                                some: {
-                                    userId: viewer.id,
-                                },
-                            },
-                        },
-                    },
-                ],
-            },
+            where: isMriAccessibleToViewer(viewer),
         })
     ).map((mri) => {
         return {
@@ -127,8 +55,6 @@ export async function getStudyMRIsFromCode(
     viewer: Viewer,
     studyCode: string
 ): Promise<StudyMRIListItem[]> {
-    const isExec = isExecutiveBoard(viewer);
-
     return (
         await prisma.mri.findMany({
             where: {
@@ -140,36 +66,7 @@ export async function getStudyMRIsFromCode(
                             },
                         },
                     },
-                    {
-                        OR: [
-                            {
-                                // If the study is not confidential
-                                study: {
-                                    information: {
-                                        confidential: false,
-                                    },
-                                },
-                            },
-                            {
-                                // If the user is a member of the executive board
-                                study: {
-                                    information: {
-                                        confidential: isExec,
-                                    },
-                                },
-                            },
-                            {
-                                // If the user is a CDP on the study
-                                study: {
-                                    cdps: {
-                                        some: {
-                                            userId: viewer.id,
-                                        },
-                                    },
-                                },
-                            },
-                        ],
-                    },
+                    isMriAccessibleToViewer(viewer),
                 ],
             },
             select: {
@@ -213,36 +110,7 @@ export async function getMRIFromId(
                 {
                     id: mriId,
                 },
-                {
-                    OR: [
-                        {
-                            // If the study is not confidential
-                            study: {
-                                information: {
-                                    confidential: false,
-                                },
-                            },
-                        },
-                        {
-                            // If the user is a member of the executive board
-                            study: {
-                                information: {
-                                    confidential: isExecutiveBoard(viewer),
-                                },
-                            },
-                        },
-                        {
-                            // If the user is a CDP on the study
-                            study: {
-                                cdps: {
-                                    some: {
-                                        userId: viewer.id,
-                                    },
-                                },
-                            },
-                        },
-                    ],
-                },
+                isMriAccessibleToViewer(viewer),
             ],
         },
     });
@@ -251,39 +119,7 @@ export async function getMRIFromId(
 async function createEmptyMRI(viewer: Viewer, studyCode: string): Promise<Mri> {
     const infos = await prisma.studyInfos.findFirst({
         where: {
-            AND: [
-                { code: studyCode },
-                {
-                    OR: [
-                        {
-                            // If the study is not confidential
-                            study: {
-                                information: {
-                                    confidential: false,
-                                },
-                            },
-                        },
-                        {
-                            // If the user is a member of the executive board
-                            study: {
-                                information: {
-                                    confidential: isExecutiveBoard(viewer),
-                                },
-                            },
-                        },
-                        {
-                            // If the user is a CDP on the study
-                            study: {
-                                cdps: {
-                                    some: {
-                                        userId: viewer.id,
-                                    },
-                                },
-                            },
-                        },
-                    ],
-                },
-            ],
+            AND: [{ code: studyCode }, isMriAccessibleToViewer(viewer)],
         },
         include: {
             study: {
@@ -324,44 +160,69 @@ async function createEmptyMRI(viewer: Viewer, studyCode: string): Promise<Mri> {
     });
 }
 
-export async function setMRITitle(viewer: Viewer, mriId: string, title: string) {
+const isMriAccessibleToViewer = (viewer: Viewer) => ({
+    OR: [
+        {
+            // If the study is not confidential
+            study: {
+                information: {
+                    confidential: false,
+                },
+            },
+        },
+        {
+            // If the user is a member of the executive board
+            study: {
+                information: {
+                    confidential: isExecutiveBoard(viewer),
+                },
+            },
+        },
+        {
+            // If the user is a CDP on the study
+            study: {
+                cdps: {
+                    some: {
+                        userId: viewer.id,
+                    },
+                },
+            },
+        },
+    ],
+});
+
+const isMriEditable = (viewer: Viewer, mriId: string): Prisma.MriWhereInput => ({
+    AND: [{ id: mriId, status: 'InProgress' }, isMriAccessibleToViewer(viewer)],
+});
+
+const registerViewerActionOnMRIs = async (viewer: Viewer, ids: string[]) => {
+    const now = new Date();
+
+    await prisma.action.updateMany({
+        where: {
+            Mri: {
+                some: {
+                    id: {
+                        in: ids,
+                    },
+                },
+            },
+        },
+        data: {
+            userId: viewer.id,
+            date: now,
+        },
+    });
+};
+
+export async function setMRITitle(
+    viewer: Viewer,
+    mriId: string,
+    title: string
+): Promise<MRIModifyFieldResult> {
     const ids = (
         await prisma.mri.updateManyAndReturn({
-            where: {
-                AND: [
-                    { id: mriId },
-                    {
-                        OR: [
-                            {
-                                // If the study is not confidential
-                                study: {
-                                    information: {
-                                        confidential: false,
-                                    },
-                                },
-                            },
-                            {
-                                // If the user is a member of the executive board
-                                study: {
-                                    information: {
-                                        confidential: isExecutiveBoard(viewer),
-                                    },
-                                },
-                            },
-                            {
-                                // If the user is a CDP on the study
-                                study: {
-                                    cdps: {
-                                        some: {
-                                            userId: viewer.id,
-                                        },
-                                    },
-                                },
-                            },
-                        ],
-                    },
-                ],
-            },
+            where: isMriEditable(viewer, mriId),
             data: {
                 title,
             },
@@ -371,67 +232,23 @@ export async function setMRITitle(viewer: Viewer, mriId: string, title: string) 
         })
     ).map((el) => el.id);
 
-    const now = new Date();
+    registerViewerActionOnMRIs(viewer, ids);
 
-    await prisma.action.updateMany({
-        where: {
-            Mri: {
-                some: {
-                    id: {
-                        in: ids,
-                    },
-                },
-            },
-        },
-        data: {
-            userId: viewer.id,
-            date: now,
-        },
-    });
+    if (ids.length > 0) {
+        return { status: 'success' };
+    } else {
+        return { status: 'error', error: MRIModifyFieldErrorCode.NoMRIOrLocked };
+    }
 }
 
 export async function setMRIIntroductionText(
     viewer: Viewer,
     mriId: string,
     introductionText: string
-) {
+): Promise<MRIModifyFieldResult> {
     const ids = (
         await prisma.mri.updateManyAndReturn({
-            where: {
-                AND: [
-                    { id: mriId },
-                    {
-                        OR: [
-                            {
-                                // If the study is not confidential
-                                study: {
-                                    information: {
-                                        confidential: false,
-                                    },
-                                },
-                            },
-                            {
-                                // If the user is a member of the executive board
-                                study: {
-                                    information: {
-                                        confidential: isExecutiveBoard(viewer),
-                                    },
-                                },
-                            },
-                            {
-                                // If the user is a CDP on the study
-                                study: {
-                                    cdps: {
-                                        some: {
-                                            userId: viewer.id,
-                                        },
-                                    },
-                                },
-                            },
-                        ],
-                    },
-                ],
-            },
+            where: isMriEditable(viewer, mriId),
             data: {
                 introductionText: introductionText,
             },
@@ -441,67 +258,23 @@ export async function setMRIIntroductionText(
         })
     ).map((el) => el.id);
 
-    const now = new Date();
+    registerViewerActionOnMRIs(viewer, ids);
 
-    await prisma.action.updateMany({
-        where: {
-            Mri: {
-                some: {
-                    id: {
-                        in: ids,
-                    },
-                },
-            },
-        },
-        data: {
-            userId: viewer.id,
-            date: now,
-        },
-    });
+    if (ids.length > 0) {
+        return { status: 'success' };
+    } else {
+        return { status: 'error', error: MRIModifyFieldErrorCode.NoMRIOrLocked };
+    }
 }
 
 export async function setMRIRequiredSkillsText(
     viewer: Viewer,
     mriId: string,
     requiredSkillsText: string
-) {
+): Promise<MRIModifyFieldResult> {
     const ids = (
         await prisma.mri.updateManyAndReturn({
-            where: {
-                AND: [
-                    { id: mriId },
-                    {
-                        OR: [
-                            {
-                                // If the study is not confidential
-                                study: {
-                                    information: {
-                                        confidential: false,
-                                    },
-                                },
-                            },
-                            {
-                                // If the user is a member of the executive board
-                                study: {
-                                    information: {
-                                        confidential: isExecutiveBoard(viewer),
-                                    },
-                                },
-                            },
-                            {
-                                // If the user is a CDP on the study
-                                study: {
-                                    cdps: {
-                                        some: {
-                                            userId: viewer.id,
-                                        },
-                                    },
-                                },
-                            },
-                        ],
-                    },
-                ],
-            },
+            where: isMriEditable(viewer, mriId),
             data: {
                 requiredSkillsText,
             },
@@ -511,63 +284,23 @@ export async function setMRIRequiredSkillsText(
         })
     ).map((el) => el.id);
 
-    const now = new Date();
+    registerViewerActionOnMRIs(viewer, ids);
 
-    await prisma.action.updateMany({
-        where: {
-            Mri: {
-                some: {
-                    id: {
-                        in: ids,
-                    },
-                },
-            },
-        },
-        data: {
-            userId: viewer.id,
-            date: now,
-        },
-    });
+    if (ids.length > 0) {
+        return { status: 'success' };
+    } else {
+        return { status: 'error', error: MRIModifyFieldErrorCode.NoMRIOrLocked };
+    }
 }
 
-export async function setMRITimeLapsText(viewer: Viewer, mriId: string, timeLapsText: string) {
+export async function setMRITimeLapsText(
+    viewer: Viewer,
+    mriId: string,
+    timeLapsText: string
+): Promise<MRIModifyFieldResult> {
     const ids = (
         await prisma.mri.updateManyAndReturn({
-            where: {
-                AND: [
-                    { id: mriId },
-                    {
-                        OR: [
-                            {
-                                // If the study is not confidential
-                                study: {
-                                    information: {
-                                        confidential: false,
-                                    },
-                                },
-                            },
-                            {
-                                // If the user is a member of the executive board
-                                study: {
-                                    information: {
-                                        confidential: isExecutiveBoard(viewer),
-                                    },
-                                },
-                            },
-                            {
-                                // If the user is a CDP on the study
-                                study: {
-                                    cdps: {
-                                        some: {
-                                            userId: viewer.id,
-                                        },
-                                    },
-                                },
-                            },
-                        ],
-                    },
-                ],
-            },
+            where: isMriEditable(viewer, mriId),
             data: {
                 timeLapsText,
             },
@@ -577,67 +310,23 @@ export async function setMRITimeLapsText(viewer: Viewer, mriId: string, timeLaps
         })
     ).map((el) => el.id);
 
-    const now = new Date();
+    registerViewerActionOnMRIs(viewer, ids);
 
-    await prisma.action.updateMany({
-        where: {
-            Mri: {
-                some: {
-                    id: {
-                        in: ids,
-                    },
-                },
-            },
-        },
-        data: {
-            userId: viewer.id,
-            date: now,
-        },
-    });
+    if (ids.length > 0) {
+        return { status: 'success' };
+    } else {
+        return { status: 'error', error: MRIModifyFieldErrorCode.NoMRIOrLocked };
+    }
 }
 
 export async function setMRIDescriptionText(
     viewer: Viewer,
     mriId: string,
     descriptionText: string
-) {
+): Promise<MRIModifyFieldResult> {
     const ids = (
         await prisma.mri.updateManyAndReturn({
-            where: {
-                AND: [
-                    { id: mriId },
-                    {
-                        OR: [
-                            {
-                                // If the study is not confidential
-                                study: {
-                                    information: {
-                                        confidential: false,
-                                    },
-                                },
-                            },
-                            {
-                                // If the user is a member of the executive board
-                                study: {
-                                    information: {
-                                        confidential: isExecutiveBoard(viewer),
-                                    },
-                                },
-                            },
-                            {
-                                // If the user is a CDP on the study
-                                study: {
-                                    cdps: {
-                                        some: {
-                                            userId: viewer.id,
-                                        },
-                                    },
-                                },
-                            },
-                        ],
-                    },
-                ],
-            },
+            where: isMriEditable(viewer, mriId),
             data: {
                 descriptionText,
             },
@@ -647,23 +336,13 @@ export async function setMRIDescriptionText(
         })
     ).map((el) => el.id);
 
-    const now = new Date();
+    registerViewerActionOnMRIs(viewer, ids);
 
-    await prisma.action.updateMany({
-        where: {
-            Mri: {
-                some: {
-                    id: {
-                        in: ids,
-                    },
-                },
-            },
-        },
-        data: {
-            userId: viewer.id,
-            date: now,
-        },
-    });
+    if (ids.length > 0) {
+        return { status: 'success' };
+    } else {
+        return { status: 'error', error: MRIModifyFieldErrorCode.NoMRIOrLocked };
+    }
 }
 
 export async function createEmptyStudyMRI(

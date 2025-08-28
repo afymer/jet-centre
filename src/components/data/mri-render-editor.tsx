@@ -26,14 +26,11 @@ import { getDifficulty, getDomain, getPay, ImageElt } from '@/app/(user)/cdp/[st
 import { useViewer } from '@/components/hooks/use-viewer';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-    ClassicLastActionPayload,
-    MriWithStudyAndAssignees,
     setMRIDescriptionText,
     setMRIIntroductionText,
     setMRIRequiredSkillsText,
     setMRITimeLapsText,
     setMRITitle,
-    StudyMRIListItem,
 } from '@/data/mri';
 import { DEFAULT_MRI_VALUES } from '@/data/mri-defaults';
 import { cn } from '@/lib/utils';
@@ -45,6 +42,13 @@ import {
     SHOWCASE_WEBSITE_URL,
     TWITTER_URL,
 } from '@/settings/links';
+import {
+    ClassicLastActionPayload,
+    MRIModifyFieldResult,
+    MriWithStudyAndAssignees,
+    StudyMRIListItem,
+    mriModifyFieldErrorCodeToString,
+} from '@/types/mri';
 
 import { Button } from '../ui/button';
 import { Spinner } from '../ui/shadcn-io/spinner';
@@ -56,13 +60,16 @@ function EditableText({
     initText,
     updateText,
     placeholder,
+    editable,
 }: {
     initText: string;
     updateText: (text: string) => void;
     placeholder: string;
+    editable: boolean;
 }) {
     const [text, setText] = useState(initText);
     const [focused, setFocused] = useState(false);
+    const [modified, setModified] = useState(false);
 
     useEffect(() => {
         setText(initText);
@@ -80,26 +87,36 @@ function EditableText({
     const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const value = e.target.value;
         setText(value);
+        setModified(true);
         debouncedHandleInput(value);
+    };
+
+    const onFocus = () => {
+        setFocused(true);
+        setModified(false);
     };
 
     const onBlur = () => {
         debouncedHandleInput.cancel();
         setFocused(false);
-        updateText(text);
+        if (modified) updateText(text);
     };
 
     return (
         <div className="w-full">
-            <TextareaAutosize
-                value={text}
-                onChange={handleInputChange}
-                className="resize-none w-full"
-                onFocus={() => setFocused(true)}
-                onBlur={onBlur}
-                placeholder={placeholder}
-                spellCheck={focused}
-            />
+            {editable ? (
+                <TextareaAutosize
+                    value={text}
+                    onChange={handleInputChange}
+                    className="resize-none w-full"
+                    onFocus={onFocus}
+                    onBlur={onBlur}
+                    placeholder={placeholder}
+                    spellCheck={focused}
+                />
+            ) : (
+                <div className="w-full">{text}</div>
+            )}
         </div>
     );
 }
@@ -143,6 +160,8 @@ export function MRIRenderEditor({ mriId }: { mriId: string }) {
     const timeLapsTextLoading = isLoading || mri === undefined || mri === null;
     const descriptionTextLoading = isLoading || mri === undefined || mri === null;
 
+    const editable = mri?.status == 'InProgress';
+
     const h4cn = 'text-2xl font-bold my-1 text-mri-headers';
 
     const refresh = () => {
@@ -173,9 +192,15 @@ export function MRIRenderEditor({ mriId }: { mriId: string }) {
         // It is REALLY important to not revalidate here
         mutate(
             async () => {
-                await setMRITitle(viewerResult.viewer, mriId, text);
+                const error = handleMRIModifyFieldResult(
+                    await setMRITitle(viewerResult.viewer, mriId, text)
+                );
                 // Here I don't think returning the updated data via the server action makes sense...
                 // The best option would be to use a web socket anyways :)
+                if (error) {
+                    globalMutate(['/api/mri/study/', mri.study.information.code]);
+                    return Promise.reject();
+                }
                 return {
                     ...mri,
                     title: text,
@@ -189,27 +214,34 @@ export function MRIRenderEditor({ mriId }: { mriId: string }) {
                     lastEditedAction: updatedAction,
                 },
                 rollbackOnError: true,
+                throwOnError: false,
                 revalidate: false,
             }
         );
 
-        try {
-            // The optimistic update here doesn't account for any error that might happen server-side
-            // If we wanted to account for them it would be better to use a custom server action that
-            // updated the title AND returns the modified list, as the second argument to globalMutate
-            globalMutate(
-                ['/api/mri/study/', mri.study.information.code],
-                (currentMris?: StudyMRIListItem[]) => {
-                    if (!currentMris) return [];
-                    return currentMris.map((mriItem) =>
-                        mriItem.id === mri.id ? { ...mriItem, mriTitle: text } : mriItem
-                    );
-                },
-                { revalidate: false }
-            );
-        } catch {
-            toast.error('Une erreur est survenue en mettant à jour le titre du MRI');
+        // The optimistic update here doesn't account for any error that might happen server-side
+        // If we wanted to account for them it would be better to use a custom server action that
+        // updated the title AND returns the modified list, as the second argument to globalMutate
+
+        globalMutate(
+            ['/api/mri/study/', mri.study.information.code],
+            (currentMris?: StudyMRIListItem[]) => {
+                if (!currentMris) return [];
+                return currentMris.map((mriItem) =>
+                    mriItem.id === mri.id ? { ...mriItem, mriTitle: text } : mriItem
+                );
+            },
+            { revalidate: false }
+        );
+    };
+
+    const handleMRIModifyFieldResult = (res: MRIModifyFieldResult): string => {
+        if (res.status == 'error') {
+            const msg = mriModifyFieldErrorCodeToString(res.error);
+            toast.error(msg);
+            return msg;
         }
+        return '';
     };
 
     const updateIntroduction = async (text: string) => {
@@ -234,9 +266,14 @@ export function MRIRenderEditor({ mriId }: { mriId: string }) {
         // It is REALLY important to not revalidate here
         mutate(
             async () => {
-                await setMRIIntroductionText(viewerResult.viewer, mriId, text);
+                const error = handleMRIModifyFieldResult(
+                    await setMRIIntroductionText(viewerResult.viewer, mriId, text)
+                );
                 // Here I don't think returning the updated data via the server action makes sense...
                 // The best option would be to use a web socket anyways :)
+                if (error) {
+                    return Promise.reject();
+                }
                 return {
                     ...mri,
                     introductionText: text,
@@ -250,6 +287,7 @@ export function MRIRenderEditor({ mriId }: { mriId: string }) {
                     lastEditedAction: updatedAction,
                 },
                 rollbackOnError: true,
+                throwOnError: false,
                 revalidate: false,
             }
         );
@@ -277,9 +315,14 @@ export function MRIRenderEditor({ mriId }: { mriId: string }) {
         // It is REALLY important to not revalidate here
         mutate(
             async () => {
-                await setMRIRequiredSkillsText(viewerResult.viewer, mriId, text);
+                const error = handleMRIModifyFieldResult(
+                    await setMRIRequiredSkillsText(viewerResult.viewer, mriId, text)
+                );
                 // Here I don't think returning the updated data via the server action makes sense...
                 // The best option would be to use a web socket anyways :)
+                if (error) {
+                    return Promise.reject();
+                }
                 return {
                     ...mri,
                     requiredSkillsText: text,
@@ -293,6 +336,7 @@ export function MRIRenderEditor({ mriId }: { mriId: string }) {
                     lastEditedAction: updatedAction,
                 },
                 rollbackOnError: true,
+                throwOnError: false,
                 revalidate: false,
             }
         );
@@ -320,7 +364,12 @@ export function MRIRenderEditor({ mriId }: { mriId: string }) {
         // It is REALLY important to not revalidate here
         mutate(
             async () => {
-                await setMRITimeLapsText(viewerResult.viewer, mriId, text);
+                const error = handleMRIModifyFieldResult(
+                    await setMRITimeLapsText(viewerResult.viewer, mriId, text)
+                );
+                if (error) {
+                    return Promise.reject();
+                }
                 // Here I don't think returning the updated data via the server action makes sense...
                 // The best option would be to use a web socket anyways :)
                 return {
@@ -336,6 +385,7 @@ export function MRIRenderEditor({ mriId }: { mriId: string }) {
                     lastEditedAction: updatedAction,
                 },
                 rollbackOnError: true,
+                throwOnError: false,
                 revalidate: false,
             }
         );
@@ -364,9 +414,14 @@ export function MRIRenderEditor({ mriId }: { mriId: string }) {
         try {
             mutate(
                 async () => {
-                    await setMRIDescriptionText(viewerResult.viewer, mriId, text);
+                    const error = handleMRIModifyFieldResult(
+                        await setMRIDescriptionText(viewerResult.viewer, mriId, text)
+                    );
                     // Here I don't think returning the updated data via the server action makes sense...
                     // The best option would be to use a web socket anyways :)
+                    if (error) {
+                        return Promise.reject();
+                    }
                     return {
                         ...mri,
                         descriptionText: text,
@@ -380,8 +435,8 @@ export function MRIRenderEditor({ mriId }: { mriId: string }) {
                         lastEditedAction: updatedAction,
                     },
                     rollbackOnError: true,
+                    throwOnError: false,
                     revalidate: false,
-                    throwOnError: true,
                 }
             );
         } catch (e) {
@@ -440,6 +495,7 @@ export function MRIRenderEditor({ mriId }: { mriId: string }) {
                                         initText={mri.title ?? ''}
                                         updateText={updateTitle}
                                         placeholder={DEFAULT_MRI_VALUES.title}
+                                        editable={editable}
                                     />
                                 ) : (
                                     <Skeleton className="h-[2.25rem] w-[160px]" />
@@ -455,6 +511,7 @@ export function MRIRenderEditor({ mriId }: { mriId: string }) {
                                         initText={mri?.introductionText ?? ''}
                                         updateText={updateIntroduction}
                                         placeholder={DEFAULT_MRI_VALUES.introductionText}
+                                        editable={editable}
                                     />
                                 ) : (
                                     <div className="flex flex-col gap-1">
@@ -489,6 +546,7 @@ export function MRIRenderEditor({ mriId }: { mriId: string }) {
                                         initText={mri?.requiredSkillsText ?? ''}
                                         updateText={updateRequiredSkillsText}
                                         placeholder={DEFAULT_MRI_VALUES.requiredSkillsText}
+                                        editable={editable}
                                     />
                                 ) : (
                                     <div className="flex flex-col gap-1">
@@ -505,6 +563,7 @@ export function MRIRenderEditor({ mriId }: { mriId: string }) {
                                         initText={mri?.timeLapsText ?? ''}
                                         updateText={updateTimeLapsText}
                                         placeholder={DEFAULT_MRI_VALUES.timeLapsText}
+                                        editable={editable}
                                     />
                                 ) : (
                                     <div className="flex flex-col gap-1">
@@ -521,6 +580,7 @@ export function MRIRenderEditor({ mriId }: { mriId: string }) {
                                         initText={mri?.descriptionText ?? ''}
                                         updateText={updatedescriptionText}
                                         placeholder={DEFAULT_MRI_VALUES.descriptionText}
+                                        editable={editable}
                                     />
                                 ) : (
                                     <div className="flex flex-col gap-1">

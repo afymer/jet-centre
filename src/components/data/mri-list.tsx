@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom';
 import useSWR from 'swr';
 
 import { Button } from '@/components/ui/button';
-import { PublicMRI } from '@/data/mri';
+import { PublicMRI } from '@/types/mri';
 
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Spinner } from '../ui/shadcn-io/spinner';
