@@ -10,11 +10,12 @@ import { MRIRenderEditor } from '@/components/data/mri-render-editor';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Spinner } from '@/components/ui/shadcn-io/spinner';
-import { createEmptyStudyMRI, StudyMRIListItem } from '@/data/mri';
+import { createEmptyStudyMRI } from '@/data/mri';
 import { DEFAULT_MRI_VALUES } from '@/data/mri-defaults';
 import { getViewer } from '@/data/user';
 import { MRIStatusColor, MRIStatusText } from '@/lib/mri';
 import { cn } from '@/lib/utils';
+import { StudyMRIListItem } from '@/types/mri';
 
 function MRIListItemStatus({ status }: { status: MriStatus }) {
     const color = MRIStatusColor(status);
