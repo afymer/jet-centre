@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext } from 'react';
+
 import { ViewerResult } from '@/data/user';
 
 const ViewerContext = createContext<ViewerResult | null>(null);

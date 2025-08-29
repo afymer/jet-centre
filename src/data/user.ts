@@ -1,7 +1,9 @@
 'use server';
 
 import { User } from 'next-auth';
+
 import { auth } from '@/actions/auth';
+
 import { isValidPosition, Position } from './positions';
 
 export type Viewer = Omit<User, 'id'> & {
