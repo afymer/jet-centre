@@ -454,7 +454,7 @@ export function MRIRenderEditor({ mriId }: { mriId: string }) {
                         <TimeAgo date={new Date(mri.lastEditedAction.date)} />
                     </div>
                 ) : (
-                    <div>Invalid MRI</div>
+                    <div>Chargement...</div>
                 )}
                 <Button
                     variant="ghost"
