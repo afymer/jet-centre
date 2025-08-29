@@ -42,16 +42,16 @@ slogs:
 
 # Database
 generate:
-	$(COMPOSE) -f $(DEV_COMPOSE) exec $(APP_SERVICE_NAME) bun x prisma generate
+	$(COMPOSE) -f $(DEV_COMPOSE) exec $(APP_SERVICE_NAME) $(PREFIX) run generate
 
 reset-db:
-	$(COMPOSE) -f $(DEV_COMPOSE) exec $(APP_SERVICE_NAME) bun x prisma migrate reset
+	$(COMPOSE) -f $(DEV_COMPOSE) exec $(APP_SERVICE_NAME) $(PREFIX) run migrate:reset
 
 migrate-db:
-	$(COMPOSE) -f $(DEV_COMPOSE) exec $(APP_SERVICE_NAME) bun x prisma migrate dev
+	$(COMPOSE) -f $(DEV_COMPOSE) exec $(APP_SERVICE_NAME) $(PREFIX) run migrate:dev
 
 seed-db:
-	$(COMPOSE) -f $(DEV_COMPOSE) exec $(APP_SERVICE_NAME) bun x prisma db seed -- --environment dev
+	$(COMPOSE) -f $(DEV_COMPOSE) exec $(APP_SERVICE_NAME) $(PREFIX) run db:seed:dev
 
 
 # Prod
@@ -65,7 +65,7 @@ down-prod:
 	$(COMPOSE) -f $(PROD_COMPOSE) down
 
 migrate-prod:
-	$(COMPOSE) -f $(PROD_COMPOSE) exec $(APP_SERVICE_NAME) bun x prisma migrate deploy
+	$(COMPOSE) -f $(PROD_COMPOSE) exec $(APP_SERVICE_NAME) $(PREFIX) run migrate:deploy
 
 deploy: build-prod up-prod
 

@@ -9,7 +9,12 @@
         "lint": "next lint",
         "prettier": "prettier",
         "fmt": "prettier -cw .",
-        "commitlint": "commitlint --from=HEAD~10 --to=HEAD"
+        "commitlint": "commitlint --from=HEAD~10 --to=HEAD",
+        "generate": "prisma generate",
+        "migrate:dev": "prisma migrate dev",
+        "migrate:deploy": "prisma migrate deploy",
+        "migrate:reset": "prisma migrate reset",
+        "db:seed:dev": "prisma db seed -- --environment dev"
     },
     "prisma": {
         "seed": "tsx prisma/seed.ts"
